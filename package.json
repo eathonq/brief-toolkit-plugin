@@ -1,0 +1,121 @@
+{
+  "$schema": "./@types/schema/package/index.json",
+  "package_version": 2,
+  "name": "brief-toolkit-plugin",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "eathonq",
+  "editor": ">=3.8.8",
+  "title": "i18n:brief-toolkit-plugin.title",
+  "description": "i18n:brief-toolkit-plugin.description",
+  "scripts": {
+    "preinstall": "node ./scripts/preinstall.js",
+    "build": "npx tsc"
+  },
+  "dependencies": {
+    "fs-extra": "^10.0.0"
+  },
+  "devDependencies": {
+    "@cocos/creator-types": "^3.8.8",
+    "@types/fs-extra": "^9.0.5",
+    "@types/node": "^18.17.1",
+    "typescript": "^5.8.2"
+  },
+  "main": "./dist/main.js",
+  "panels": {
+    "default": {
+      "title": "brief-toolkit-plugin Default Panel",
+      "main": "dist/panels/default",
+      "size": {
+        "min-width": 400,
+        "min-height": 300,
+        "width": 1024,
+        "height": 600
+      }
+    },
+    "i18n": {
+      "title": "i18n:brief-toolkit-plugin.i18n_panel_title",
+      "main": "dist/panels/i18n",
+      "size": {
+        "min-width": 400,
+        "min-height": 300,
+        "width": 600,
+        "height": 500
+      }
+    },
+    "guide": {
+      "title": "i18n:brief-toolkit-plugin.guide_panel_title",
+      "main": "dist/panels/guide",
+      "size": {
+        "min-width": 400,
+        "min-height": 300,
+        "width": 600,
+        "height": 500
+      }
+    }
+  },
+  "contributions": {
+    "scene": {
+      "script": "./dist/scene.js"
+    },
+    "profile": {
+      "project": {
+        "i18nPanelState": {
+          "default": {
+            "resourceDir": "",
+            "templateLocale": null
+          },
+          "message": "i18n-panel-state-changed",
+          "label": "i18n:brief-toolkit-plugin.profile_i18n_panel_state"
+        }
+      }
+    },
+    "menu": [
+      {
+        "path": "brief-toolkit-plugin",
+        "label": "i18n:brief-toolkit-plugin.open_i18n_panel",
+        "message": "open-i18n-panel"
+      },
+      {
+        "path": "brief-toolkit-plugin",
+        "label": "i18n:brief-toolkit-plugin.open_guide_panel",
+        "message": "open-guide-panel"
+      }
+    ],
+    "messages": {
+      "open-panel": {
+        "methods": [
+          "openPanel"
+        ]
+      },
+      "open-i18n-panel": {
+        "methods": [
+          "openI18nPanel"
+        ]
+      },
+      "open-guide-panel": {
+        "methods": [
+          "openGuidePanel"
+        ]
+      },
+      "send-to-panel": {
+        "methods": [
+          "default.hello"
+        ]
+      },
+      "i18n-panel-state-changed": {
+        "methods": [
+          "onI18nPanelStateChanged"
+        ]
+      }
+    },
+    "asset-db": {
+      "mount": {
+        "path": "./static/assets",
+        "readonly": true,
+        "visible": true,
+        "enabled": true
+      }
+    }
+  }
+}

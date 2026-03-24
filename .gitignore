@@ -1,0 +1,7 @@
+@types
+node_modules/
+scripts/
+source/
+base.tsconfig.json
+package-lock.json
+tsconfig.json

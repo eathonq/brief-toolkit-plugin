@@ -1,0 +1,126 @@
+.i18n-panel {
+    color: var(--color-normal-contrast-weakest);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.row-setting {
+    flex-wrap: wrap;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 28px;
+    white-space: nowrap;
+}
+
+.row-title {
+    margin-top: 2px;
+}
+
+.input {
+    flex: 1;
+    min-width: 180px;
+    height: 28px;
+    padding: 4px 8px;
+    border: 1px solid var(--color-normal-border, #4a4a4a);
+    border-radius: 4px;
+    background: var(--color-normal-fill, #1f1f1f);
+    color: var(--color-normal-contrast, #d9d9d9);
+    box-sizing: border-box;
+}
+
+.btn {
+    height: 28px;
+    min-width: 68px;
+    padding: 0 12px;
+    border: 1px solid var(--color-focus-fill, #2b88d8);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-focus-fill, #2b88d8);
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: color-mix(in srgb, var(--color-focus-fill, #2b88d8) 18%, transparent);
+}
+
+.row-table {
+    width: 100%;
+}
+
+.dir-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.dir-table th,
+.dir-table td {
+    border-bottom: 1px solid var(--color-normal-border, #3f3f3f);
+    padding: 6px 8px;
+    text-align: left;
+    word-break: break-all;
+}
+
+.dir-table th:nth-child(1),
+.dir-table td:nth-child(1) {
+    width: auto;
+}
+
+.dir-table th:nth-child(2),
+.dir-table td:nth-child(2),
+.dir-table th:nth-child(3),
+.dir-table td:nth-child(3) {
+    width: 74px;
+    text-align: center;
+}
+
+.table-action-btn {
+    height: 24px;
+    min-width: 56px;
+    padding: 0 8px;
+    border: 1px solid var(--color-normal-border, #4a4a4a);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-normal-contrast-weakest);
+    cursor: pointer;
+}
+
+.table-action-btn:hover {
+    border-color: var(--color-focus-fill, #2b88d8);
+    color: var(--color-focus-fill, #2b88d8);
+}
+
+.table-action-btn-danger {
+    background: #b63a3a;
+    border-color: #b63a3a;
+    color: #ffffff;
+}
+
+.table-action-btn-danger:hover {
+    background: #cf4444;
+    border-color: #cf4444;
+    color: #ffffff;
+}
+
+.empty-tip {
+    color: var(--color-normal-contrast-weak, #9c9c9c);
+    text-align: center;
+}
+
+.row-add {
+    width: 100%;
+}
