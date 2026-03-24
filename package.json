@@ -1,5 +1,4 @@
 {
-  "$schema": "./@types/schema/package/index.json",
   "package_version": 2,
   "name": "brief-toolkit-plugin",
   "version": "1.0.0",
