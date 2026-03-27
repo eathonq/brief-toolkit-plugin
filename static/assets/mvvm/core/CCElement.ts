@@ -172,7 +172,7 @@ export class CCElement extends Component {
         binding: [
           {
             name: 'active',
-            kind: [DataKind.Boolean, DataKind.Number, DataKind.String, DataKind.Object],
+            kind: [DataKind.Boolean],
             setValue: (value) => this.setNodeActiveValue(value),
             bindCallback: () => this.bindNodeActiveCallback()
           },
