@@ -552,6 +552,9 @@ class DecoratorData {
       for (let i = 1; i < pathList.length; i++) {
         let key = pathList[i];
         temp = temp[key];
+        if (temp === undefined || temp === null) {
+          return null;
+        }
         // 判断是否是数组
         if (temp instanceof Array) {
           temp = temp[0];
