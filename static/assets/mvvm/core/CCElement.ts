@@ -554,7 +554,9 @@ export class CCElement extends Component {
     };
     editBox.node.on(EditBox.EventType.TEXT_CHANGED, callback, this);
     this.addDisposer(() => {
-      editBox.node.off(EditBox.EventType.TEXT_CHANGED, callback, this);
+      if (editBox && editBox.node && editBox.node.isValid) {
+        editBox.node.off(EditBox.EventType.TEXT_CHANGED, callback, this);
+      }
     });
   }
 
@@ -566,7 +568,9 @@ export class CCElement extends Component {
     };
     toggle.node.on(Toggle.EventType.TOGGLE, callback, this);
     this.addDisposer(() => {
-      toggle.node.off(Toggle.EventType.TOGGLE, callback, this);
+      if (toggle && toggle.node && toggle.node.isValid) {
+        toggle.node.off(Toggle.EventType.TOGGLE, callback, this);
+      }
     });
   }
 
@@ -578,7 +582,9 @@ export class CCElement extends Component {
     };
     button.node.on(Button.EventType.CLICK, callback, this);
     this.addDisposer(() => {
-      button.node.off(Button.EventType.CLICK, callback, this);
+      if (button && button.node && button.node.isValid) {
+        button.node.off(Button.EventType.CLICK, callback, this);
+      }
     });
   }
 
@@ -590,7 +596,9 @@ export class CCElement extends Component {
     };
     slider.node.on('slide', callback, this);
     this.addDisposer(() => {
-      slider.node.off('slide', callback, this);
+      if (slider && slider.node && slider.node.isValid) {
+        slider.node.off('slide', callback, this);
+      }
     });
   }
 
@@ -602,7 +610,9 @@ export class CCElement extends Component {
     };
     pageView.node.on(PageView.EventType.PAGE_TURNING, callback, this);
     this.addDisposer(() => {
-      pageView.node.off(PageView.EventType.PAGE_TURNING, callback, this);
+      if (pageView && pageView.node && pageView.node.isValid) {
+        pageView.node.off(PageView.EventType.PAGE_TURNING, callback, this);
+      }
     });
   }
 
@@ -627,9 +637,11 @@ export class CCElement extends Component {
     });
     if (exist) {
       this.addDisposer(() => {
-        const index = container.checkEvents.indexOf(exist);
-        if (index !== -1) {
-          container.checkEvents.splice(index, 1);
+        if (container && container.checkEvents && container.checkEvents.length > 0) {
+          const index = container.checkEvents.indexOf(exist);
+          if (index !== -1) {
+            container.checkEvents.splice(index, 1);
+          }
         }
       });
       return;
@@ -642,9 +654,11 @@ export class CCElement extends Component {
     containerEventHandler.customEventData = '0';
     container.checkEvents.push(containerEventHandler);
     this.addDisposer(() => {
-      const index = container.checkEvents.indexOf(containerEventHandler);
-      if (index !== -1) {
-        container.checkEvents.splice(index, 1);
+      if (container && container.checkEvents && container.checkEvents.length > 0) {
+        const index = container.checkEvents.indexOf(containerEventHandler);
+        if (index !== -1) {
+          container.checkEvents.splice(index, 1);
+        }
       }
     });
   }
@@ -671,7 +685,9 @@ export class CCElement extends Component {
     };
     this.node.on(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, callback, this);
     this.addDisposer(() => {
-      this.node.off(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, callback, this);
+      if (this.node && this.node.isValid) {
+        this.node.off(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, callback, this);
+      }
     });
   }
 
@@ -698,7 +714,9 @@ export class CCElement extends Component {
     };
     this.node.on(Node.EventType.TRANSFORM_CHANGED, callback, this);
     this.addDisposer(() => {
-      this.node.off(Node.EventType.TRANSFORM_CHANGED, callback, this);
+      if (this.node && this.node.isValid) {
+        this.node.off(Node.EventType.TRANSFORM_CHANGED, callback, this);
+      }
     });
   }
 
@@ -708,7 +726,9 @@ export class CCElement extends Component {
     };
     this.node.on(eventType, callback, this);
     this.addDisposer(() => {
-      this.node.off(eventType, callback, this);
+      if (this.node && this.node.isValid) {
+        this.node.off(eventType, callback, this);
+      }
     });
   }
 

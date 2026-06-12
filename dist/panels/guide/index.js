@@ -12,44 +12,183 @@ const RESOURCES_DB_ROOT = 'db://assets/resources';
 const SCHEMA_FILE_NAME = '.schema.json';
 const GUIDE_FILE_SUFFIX = '.guide.json';
 const GUIDE_TASK_SCHEMA = {
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    $id: '.schema.json',
-    title: 'guide task schema',
-    type: 'object',
-    required: ['key', 'steps'],
-    properties: {
-        key: {
-            type: 'string',
-            title: '任务标识',
-        },
-        steps: {
-            type: 'array',
-            title: '步骤列表',
-            items: {
-                type: 'object',
-                title: '步骤对象',
-                required: ['target'],
-                properties: {
-                    target: {
-                        type: 'string',
-                        title: '目标节点路径',
-                    },
-                    title: {
-                        type: 'string',
-                        title: '步骤标题（可选）',
-                    },
-                    description: {
-                        type: 'string',
-                        title: '步骤描述（可选）',
-                    },
-                    eventData: {
-                        type: 'object',
-                        title: '步骤事件数据（可选）',
-                    },
-                },
-            },
-        },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".schema.json",
+  "title": "Guide Task Schema",
+  "type": "object",
+  "required": ["key", "steps"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "title": "任务标识"
     },
+    "index": {
+      "type": "integer",
+      "title": "当前进度（自动维护，初始可设为 0）"
+    },
+    "steps": {
+      "type": "array",
+      "title": "步骤列表",
+      "items": {
+        "type": "object",
+        "title": "步骤",
+        "required": ["target"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "步骤唯一标识（用于 jumpTo 跳转，不配则使用数组索引）"
+          },
+          "target": {
+            "type": "string",
+            "title": "目标节点路径（> 分段，如 Canvas>Panel>Btn）"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "触发类型（默认根据组件推断：EditBox→input_done, Slider→slide, ToggleContainer→toggle, PageView→page_turn，其余→click）",
+            "enum": ["click", "input_done", "slide", "toggle", "page_turn"]
+          },
+          "condition": {
+            "type": "object",
+            "title": "完成条件（不配则交互一次即完成）",
+            "oneOf": [
+              {
+                "title": "toggle_index — 校验 ToggleContainer 选中项",
+                "properties": {
+                  "type": { "const": "toggle_index" },
+                  "params": {
+                    "type": "object",
+                    "required": ["index"],
+                    "properties": {
+                      "index": { "type": "number", "title": "目标 Toggle 索引" }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "page_index — 校验 PageView 当前页",
+                "properties": {
+                  "type": { "const": "page_index" },
+                  "params": {
+                    "type": "object",
+                    "required": ["index"],
+                    "properties": {
+                      "index": { "type": "number", "title": "目标页面索引" }
+                    }
+                  }
+                }
+              },
+              {
+                "title": "property_equal — 校验组件属性值",
+                "properties": {
+                  "type": { "const": "property_equal" },
+                  "params": {
+                    "type": "object",
+                    "required": ["property"],
+                    "properties": {
+                      "property": {
+                        "type": "string",
+                        "title": "属性名",
+                        "description": "如 Slider→progress, EditBox→string, Toggle→isChecked"
+                      },
+                      "value": {
+                        "title": "目标值（notEmpty 时不需要）",
+                        "description": "布尔/字符串/数字均可"
+                      },
+                      "operator": {
+                        "type": "string",
+                        "title": "比较运算符（默认 eq）",
+                        "enum": ["eq", "neq", "gt", "gte", "lt", "lte", "notEmpty"],
+                        "default": "eq"
+                      },
+                      "tolerance": {
+                        "type": "number",
+                        "title": "数值容差（默认 0，仅 eq/neq 有效）",
+                        "default": 0
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "focus": {
+            "type": "object",
+            "title": "聚焦样式覆盖（不配则使用 GuideSetting 全局配置）",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "title": "聚焦窗口形状",
+                "enum": ["rectangle", "circle", "rounded_rect", "ellipse"]
+              },
+              "margin": {
+                "type": "number",
+                "title": "目标区域外扩（px）"
+              },
+              "switchDuration": {
+                "type": "number",
+                "title": "步骤切换动画时长（秒，0=无动画）"
+              },
+              "maskColor": {
+                "type": "object",
+                "title": "遮罩颜色 { r, g, b, a }",
+                "properties": {
+                  "r": { "type": "number", "minimum": 0, "maximum": 255 },
+                  "g": { "type": "number", "minimum": 0, "maximum": 255 },
+                  "b": { "type": "number", "minimum": 0, "maximum": 255 },
+                  "a": { "type": "number", "minimum": 0, "maximum": 255 }
+                }
+              }
+            }
+          },
+          "dialog": {
+            "type": "object",
+            "title": "对话配置（存在即显示）",
+            "properties": {
+              "title": { "type": "string", "title": "标题" },
+              "description": { "type": "string", "title": "描述" },
+              "position": {
+                "type": "string",
+                "title": "位置偏好",
+                "enum": ["top", "bottom", "left", "right", "auto"],
+                "default": "auto"
+              },
+              "offset": {
+                "type": "object",
+                "title": "偏移 { x, y }",
+                "properties": {
+                  "x": { "type": "number" },
+                  "y": { "type": "number" }
+                }
+              }
+            }
+          },
+          "pointer": {
+            "title": "指示器配置（不配/空对象=默认显示，false=隐藏）",
+            "oneOf": [
+              { "type": "boolean", "const": false },
+              {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "string",
+                    "enum": ["top", "bottom", "left", "right", "auto"],
+                    "default": "auto"
+                  },
+                  "offset": {
+                    "type": "object",
+                    "properties": {
+                      "x": { "type": "number" },
+                      "y": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
 };
 function normalizeDir(value) {
     return value.trim().replace(/^[\\/]+|[\\/]+$/g, '');

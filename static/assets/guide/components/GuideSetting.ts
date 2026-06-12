@@ -54,7 +54,6 @@ export class GuideSetting extends Component {
   private enableMask: boolean = true;
 
   @property({
-    type: Color,
     tooltip: '遮罩颜色（默认半透明黑色）',
     visible() { return (this as any).enableMask; },
   })

@@ -173,7 +173,9 @@ export class GuideDialogProgress extends GuideDialogBase {
   /** 清除所有克隆的指示器（模板不动，仅解绑事件） */
   private _clearIndicatorClones(): void {
     // 解绑模板点击事件
-    this.itemTemplate?.off(Node.EventType.TOUCH_END);
+    if (this.itemTemplate && this.itemTemplate.isValid) {
+      this.itemTemplate?.off(Node.EventType.TOUCH_END);
+    }
 
     for (const node of this._indicatorClones) {
       if (node && node.isValid) {
@@ -188,9 +190,15 @@ export class GuideDialogProgress extends GuideDialogBase {
   // ── 销毁 ──
 
   onDestroy(): void {
-    this.prevBtn?.off(Button.EventType.CLICK, this._onPrev, this);
-    this.nextBtn?.off(Button.EventType.CLICK, this._onNext, this);
-    this.finishBtn?.off(Button.EventType.CLICK, this._onFinish, this);
+    if (this.prevBtn && this.prevBtn.isValid) {
+      this.prevBtn.off(Button.EventType.CLICK, this._onPrev, this);
+    }
+    if (this.nextBtn && this.nextBtn.isValid) {
+      this.nextBtn.off(Button.EventType.CLICK, this._onNext, this);
+    }
+    if (this.finishBtn && this.finishBtn.isValid) {
+      this.finishBtn.off(Button.EventType.CLICK, this._onFinish, this);
+    }
     this._clearIndicatorClones();
   }
 }
