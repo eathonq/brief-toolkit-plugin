@@ -6,10 +6,10 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2024-08-28
- * @modified 2026-03-13
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Node, Enum, EventTouch, Label, Button } from "cc";
@@ -128,15 +128,14 @@ export class MessageBoxBase extends ViewBase {
   /** 数据关闭回调 */
   private _callback: (result: MessageBoxResult) => void;
   private resetData(data: MessageBoxData) {
-    // 设置回调
+    // 同名消息框重复显示：取消旧的 Promise，更新为新数据（与 Tooltip 行为一致）
     if (this._callback) {
-      // 直接返回结果
-      data.resolve?.(MessageBoxResult.None);
-      return;
+      const oldCallback = this._callback;
+      this._callback = null;
+      oldCallback(MessageBoxResult.None);
     }
-    else {
-      this._callback = data.resolve;
-    }
+    // 设置新回调
+    this._callback = data.resolve;
 
     // 默认数据恢复
     if (!data) data = {

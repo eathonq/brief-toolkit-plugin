@@ -1,136 +1,166 @@
 /**
- * GuideStepAction.ts - 引导步骤动作
- * @description 该类负责执行引导步骤的具体操作，包括高亮目标节点和处理用户交互。
- * 
+ * GuideStepAction.ts - 引导步骤动作 V2
+ * @description 负责执行引导步骤：定位目标节点、显示遮罩高亮、显示对话/指示器、等待用户交互。
+ *              交互处理委托给 GuideInteractionHandler。
+ *
+ *              V2 变更：步骤切换时聚焦保持活跃，由 GuideFocus 内部处理切换动画。
+ *              done() 不再清除聚焦，cancel() 清除聚焦。
+ *
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v2.0.0
+ *
  * @created 2023-01-30
- * @modified 2026-03-17
+ * @modified 2026-06-12
  */
 
-import { Button, EditBox, Label, Node, PageView, ProgressBar, Slider, Sprite, Toggle, ToggleContainer } from "cc";
-import { CCLocatorLoop } from "./CCLocatorLoop";
-import { FocusCallback, GuideStep, IGuideMask } from "./IGuideManager";
-
-type IdentifyElement = {
-  component: any;
-}
+import { Node } from 'cc';
+import { CCLocatorLoop } from './CCLocatorLoop';
+import { GuideStep, IGuideFocus, IGuideDialog, IGuidePointer } from './IGuideManager';
+import { GuidePositionResult } from './GuidePosition';
+import { GuideInteractionHandler } from './GuideInteractionHandler';
 
 /**
  * 引导步骤动作
- * @param guideMask 引导遮罩
- * @info 负责执行引导步骤的具体操作，包括高亮目标节点和处理用户交互
+ *
+ * 职责：
+ *   - 节点定位（getNode）
+ *   - 步骤编排（runStep）：聚焦 → 显示指针 → 显示对话 → 委托交互
+ *   - 生命周期（prepare / cancel）
+ *
+ * 聚焦动画约定：
+ *   - prepare() 清除聚焦 + 标记 snapNext → 下一步骤 snap 定位
+ *   - 步骤正常完成：不清理聚焦 → 下一步骤 focusOn 播放切换动画
+ *   - cancel()（stopTask / jumpTo / nextStep）：清理聚焦
+ *
+ * 交互处理委托给 GuideInteractionHandler。
  */
 export class GuideStepAction {
-  private readonly _elementRegistry: IdentifyElement[] = this.createElementRegister();
   private _rootNode: Node = null;
-  private _guideMask: IGuideMask = null;
+  private _guideFocus: IGuideFocus = null;
+  private _dialog: IGuideDialog | null = null;
+  private _pointer: IGuidePointer | null = null;
 
-  private createElementRegister(): IdentifyElement[] {
-    return [
-      { component: Label },
-      { component: EditBox },
-      { component: Toggle },
-      { component: Button },
-      { component: Slider },
-      { component: ProgressBar },
-      { component: PageView },
-      { component: Sprite },
-      { component: ToggleContainer },
-      { component: Node },
-    ]
-  }
+  /** 交互处理器（条件校验 + trigger 解析 + do* 方法） */
+  private _handler: GuideInteractionHandler;
 
-  constructor(rootNode: Node, guideMask: IGuideMask) {
+  /** 当前步骤的清理函数链（用于外部 cancel） */
+  private _currentCleanup: (() => void) | null = null;
+
+  constructor(
+    rootNode: Node,
+    guideFocus: IGuideFocus,
+    dialog?: IGuideDialog,
+    pointer?: IGuidePointer,
+  ) {
     this._rootNode = rootNode;
-    this._guideMask = guideMask;
+    this._guideFocus = guideFocus;
+    this._dialog = dialog ?? null;
+    this._pointer = pointer ?? null;
+
+    // 注入清理链回调：handler 只管注册自己的清理，链由这里维护
+    this._handler = new GuideInteractionHandler((fn) => {
+      const prev = this._currentCleanup;
+      this._currentCleanup = () => {
+        fn();
+        prev?.();
+      };
+    });
   }
+
+  // ── 节点定位 ──
 
   private async getNode(path: string) {
     const node = await CCLocatorLoop.locateNode(path, this._rootNode);
     if (!node) {
-      console.error(`node not found: ${path}`);
+      console.error(`GuideStepAction: node not found: ${path}`);
     }
     return node;
   }
 
-  private identifyComponent(node: Node) {
-    const identifyList: IdentifyElement[] = [];
-    for (const element of this._elementRegistry) {
-      if (node.getComponent(element.component)) {
-        identifyList.push(element);
-      }
-    }
-    return identifyList;
+  // ── 生命周期 ──
+
+  /** 下次 show 是否应 snap 定位（由 prepare 设置） */
+  private _snapNext = false;
+
+  /**
+   * 任务准备：隐藏对话/指示器、清除遮罩，并标记下次 show 为 snap。
+   * 由 GuideManager.startTask / _finish 调用。
+   */
+  prepare(): void {
+    this._dialog?.hide();
+    this._pointer?.hide();
+    this._guideFocus.clearFocus(true); // snap：不播退出动画
+    this._snapNext = true;
   }
 
-  async runStep(step: GuideStep, onFocusCallback?: FocusCallback) {
+  /**
+   * 取消当前步骤（由 GuideManager.stopTask / nextStep / jumpTo 调用）。
+   * 执行清理链 → 清除聚焦 → 隐藏组件 → resolve Promise。
+   */
+  cancel(): void {
+    this._currentCleanup?.();
+    this._currentCleanup = null;
+  }
+
+  // ── 步骤执行 ──
+
+  async runStep(step: GuideStep, stepIndex?: number, totalSteps?: number): Promise<void> {
     const node = await this.getNode(step.target);
     if (!node) {
-      console.warn(`引导步骤目标节点不存在，路径: ${step.target}`);
-      return;
-    }
-    const identifyList = this.identifyComponent(node);
-    if (identifyList.length === 0) {
-      console.warn(`无法识别的引导目标组件，路径: ${step.target}`);
+      console.warn(`GuideStepAction: 引导步骤目标节点不存在，路径: ${step.target}`);
       return;
     }
 
-    const firstIdentify = identifyList[0];
-    switch (firstIdentify.component) {
-      case Button:
-        await this.doTouchEnd(node, step, onFocusCallback);
-        break;
-      case ToggleContainer:
-        await this.doToggleGroupCheck(node, step, onFocusCallback);
-        break;
-      default:
-        await this.doTouchEnd(node, step, onFocusCallback);
-        break;
-    }
-  }
-
-  private async doTouchEnd(node: Node, step: GuideStep, onFocusCallback?: FocusCallback) {
     return new Promise<void>((resolve) => {
-      this._guideMask.focusOn(node, step, onFocusCallback);
-      node.once(Node.EventType.TOUCH_END, () => {
-        this._guideMask.clearFocus();
+      let resolved = false;
+
+      /**
+       * 步骤完成回调（用户交互触发）。
+       * V2 变更：不清理聚焦 — 下一步骤的 focusOn 会自行处理切换动画。
+       */
+      const done = () => {
+        if (resolved) return;
+        resolved = true;
+        this._dialog?.hide();
+        this._pointer?.hide();
+        // 聚焦保持活跃，不清除 — 步骤间连续，实现切换动画
+        this._currentCleanup = null;
         resolve();
-      });
+      };
+
+      // 取消清理链（stopTask / jumpTo / nextStep / previousStep 触发）。
+      // V2 设计：不在此处清除聚焦 — 聚焦保持活跃，让下一次 focusOn
+      // 自然走到切换动画（hasFocus=true → _animateSwitch），避免"瞬间清除→重新淡入"的卡顿。
+      // 聚焦的最终清除由 prepare()（任务开始/结束时调用）负责。
+      this._currentCleanup = () => {
+        this._dialog?.hide();
+        this._pointer?.hide();
+        // 聚焦保持活跃，不清除
+        this._currentCleanup = null;
+        done();
+      };
+
+      // 1. 聚焦遮罩（传入 snap 控制动画）
+      this._guideFocus.focusOn(node, step, undefined, this._snapNext);
+
+      // 2. 显示指示器
+      let pointerResult: GuidePositionResult | undefined;
+      if (this._pointer && step.pointer !== false) {
+        pointerResult = this._pointer.show(node, step, undefined, this._snapNext);
+      }
+
+      // 3. 显示对话（排除指针所在方向）
+      if (this._dialog && step.dialog) {
+        const excludeDirs = pointerResult ? [pointerResult.direction] : undefined;
+        this._dialog.show(node, step, excludeDirs, this._snapNext, stepIndex, totalSteps);
+      }
+
+      this._snapNext = false;
+
+      // 4. 委托交互处理
+      const trigger = this._handler.resolveTrigger(node, step);
+      this._handler.dispatch(trigger, node, step, done);
     });
   }
-
-  private async doToggleGroupCheck(node: Node, step: GuideStep, onFocusCallback?: FocusCallback) {
-      return new Promise<void>((resolve) => {
-        this._guideMask.focusOn(node, step, onFocusCallback);
-        const toggleContainer = node.getComponent(ToggleContainer);
-        if (!toggleContainer) {
-          console.warn(`ToggleContainer component not found on node: ${node.name}`);
-          resolve();
-          return;
-        }
-        
-        toggleContainer.node.once(Node.EventType.TOUCH_END, () => {
-          this._guideMask.clearFocus();
-          resolve();
-        }
-        , toggleContainer.node);
-      });
-  }
-
-  // private async onToggleContainerCheckEvent(toggle: Toggle) {
-  //   if (!toggle || !toggle.node) return;
-  //   const parent: Node = toggle.node.parent;
-  //   if (!parent) return;
-
-  //   // 获取位置索引
-  //   const index = parent.children.indexOf(toggle.node);
-  //   if (index === -1) return;
-
-  //   // 切换移动方式类型
-  //   this._moveType = index;
-  //   console.log(`切换移动方式类型: ${this._moveType}`);
-  // }
 }

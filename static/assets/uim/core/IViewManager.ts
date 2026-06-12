@@ -4,10 +4,10 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2026-03-13
- * @modified 2026-03-13
+ * @modified 2026-06-10
  */
 
 /**
@@ -66,15 +66,15 @@ export interface IViewManager {
    * @param name 视图名称
    * @returns 视图类型
    */
-  getViewType(name: string): ViewType;
+  getViewType<T extends string = string>(name: T): ViewType;
 
   /**
    * 检查视图是否存在
    * @param name 视图名称
    * @param type 视图类型
-   * @returns 
+   * @returns
    */
-  checkView(name: string, type?: ViewType): boolean;
+  checkView<T extends string = string>(name: T, type?: ViewType): boolean;
 
   /**
    * 获取所有视图名称（模板表中的视图）
@@ -87,45 +87,45 @@ export interface IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  show(name: string, data?: any): void;
+  show<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 关闭视图
    * @param name 视图名称
    * @param data 数据
    */
-  close(name: string, data?: any): void;
+  close<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 是否是当前显示的最上层视图
    * @param name 视图名称
    * @returns 是否是当前显示的最上层视图
    */
-  isTopView(name: string): boolean;
+  isTopView<T extends string = string>(name: T): boolean;
 
   /** 获取当前显示的最上层视图名称 */
   getCurrentViewName(): string;
 
   /**
    * 显示视图（该视图已经存在则关闭之前所有视图显示该视图）
-   * @param name 视图名称(不填显示默认视图) 
+   * @param name 视图名称(不填显示默认视图)
    * @param data 数据
    */
-  showView(name: string, data?: any): void;
+  showView<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 显示视图并替换当前视图（该视图已经存在则取出该视图显示替换）
    * @param name 视图名称
    * @param data 数据
    */
-  showAsReplace(name: string, data?: any): void;
+  showAsReplace<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 显示视图做为根视图（该视图已经存在则取出该视图做为根视图）
    * @param name 视图名称
    * @param data 数据
    */
-  showAsRoot(name: string, data?: any): void;
+  showAsRoot<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 视图后退（返回上一个显示的视图）
@@ -138,11 +138,11 @@ export interface IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  closeView(name: string, data?: any): void;
+  closeView<T extends string = string>(name: T, data?: any): void;
 
   /**
    * 显示消息框
-   * @param data 
+   * @param data
    */
   showMessageBox(data: any): boolean;
   /**
@@ -150,14 +150,14 @@ export interface IViewManager {
    * @param name 消息框名称(不填显示默认消息框)
    * @param data 数据
    */
-  showMessageBox(name: string, data: any): boolean;
+  showMessageBox<T extends string = string>(name: T, data: any): boolean;
 
   /**
    * 关闭消息框
    * @param name 消息框名称(不填关闭默认消息框)
    * @param data 数据
    */
-  closeMessageBox(name?: string, data?: any): void;
+  closeMessageBox<T extends string = string>(name?: T, data?: any): void;
 
   /**
    * 显示提示框
@@ -169,14 +169,14 @@ export interface IViewManager {
    * @param name 提示框名称(不填显示默认提示框)
    * @param data 数据
    */
-  showTooltip(name: string, data: any): boolean;
+  showTooltip<T extends string = string>(name: T, data: any): boolean;
 
   /**
    * 关闭提示框
    * @param name 提示框名称(不填关闭默认提示框)
    * @param data 数据
    */
-  closeTooltip(name?: string, data?: any): void;
+  closeTooltip<T extends string = string>(name?: T, data?: any): void;
 }
 
 //#region MessageBox Data 
@@ -228,6 +228,8 @@ export type MessageBoxData = {
   title?: string;
   /** 显示按钮 */
   buttons?: MessageBoxButtons;
+  /** 无法显示时的默认返回值（不传默认 None） */
+  defaultResult?: MessageBoxResult;
 
   /** 异步关闭回调（MessageBox声明，MessageBoxBase使用） */
   resolve?(result: MessageBoxResult): void;

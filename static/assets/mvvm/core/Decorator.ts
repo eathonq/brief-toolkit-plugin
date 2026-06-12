@@ -1,13 +1,13 @@
 /**
  * Decorator.ts - 装饰器
- * @description 该模块提供 MVVM 相关的装饰器，用于标记 ViewModel、Model、属性和方法等。
+ * @description 该模块提供 MVVM 相关的装饰器，用于标记 ViewModel、Model、属性、方法和事件。
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.1.0
  * 
  * @created 2023-03-02
- * @modified 2026-03-11
+ * @modified 2026-06-09
  */
 
 import { decoratorData } from "./DecoratorData";
@@ -34,11 +34,11 @@ export namespace _decorator {
    * .@vm('MyViewModel', true)
    * class MyViewModel {}
    * 
-   * // 可以继承 IViewModel 接口，便捷重写 onLoad 和 onDestroy 方法（也可以直接重写）
+   * // 可以继承 BaseViewModel 类，便捷重写生命周期方法
    * .@vm('MyViewModel')
-   * class MyViewModel implements IViewModel {
-   *     onLoaded() {}  // 可重写 onLoad 方法
-   *     onDestroy() {} // 可重写 onDestroy 方法
+   * class MyViewModel extends BaseViewModel {
+   *     onLoaded() {}  // 可重写生命周期方法
+   *     onDestroy() {}
    * }
    * ```
    */
@@ -161,6 +161,30 @@ export namespace _decorator {
     const target = args[0];
     const key = args[1];
     decoratorData.addFunction(target.constructor, key);
+  }
+  //#endregion
+
+  //#region event
+  /**
+   * 事件订阅装饰器
+   * 声明式订阅消息总线事件，框架在 onLoaded 时自动订阅，onDestroy 时自动解绑。
+   *
+   * @param name 事件名称
+   * @example
+   * ```ts
+   * .@vm('MyVM')
+   * class MyVM extends BaseViewModel {
+   *   .@event('score-changed')
+   *   onScoreChanged(payload: number) {
+   *     this.score = payload;
+   *   }
+   * }
+   * ```
+   */
+  export function event(name: string): MethodDecorator {
+    return (target: any, key: string | symbol) => {
+      decoratorData.addEvent(target.constructor, key, name);
+    };
   }
   //#endregion
 

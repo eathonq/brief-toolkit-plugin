@@ -1,24 +1,23 @@
 /**
- * ViewManager.ts - 视图管理绑定组件
- * @description 该组件实现了 IViewManager 接口，提供了视图管理的核心功能，包括视图的显示、隐藏、关闭、数据通知等操作，并支持视图的层级管理（View、MessageBox、Tooltip）。通过该组件，开发者可以方便地在项目中管理各种类型的视图，并且可以在编辑器中配置默认视图和预制体列表。
- * @important 在 Cocos Creator 中，通常挂载在场景根节点或常驻节点（如Canvas、RootNode）上。
+ * ViewNavigator.ts - 场景级视图导航组件
+ * @description 每场景独立挂载，管理该场景的视图导航（ViewStack / MessageBoxQueue / TooltipQueue）。
+ *              实现 IViewManager 接口，通过 __viewsBind() 注册为当前场景的视图管理器。
+ * @important 在 Cocos Creator 中，每个场景根节点挂载一个 ViewNavigator。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/uim/viewmanager}
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2023-01-30
- * @modified 2026-03-12
+ * @modified 2026-06-11
  */
 
 import { _decorator, Node, Component, Prefab, instantiate, Enum, CCClass } from 'cc';
 import { EDITOR } from 'cc/env';
 import { IViewManager, ViewEvent, ViewState, ViewType } from '../core/IViewManager';
 import { ViewBase } from './ViewBase';
-import { Views } from '../core/Views';
-import { MessageBox } from '../core/MessageBox';
-import { Tooltip } from '../core/Tooltip';
+import { Views, __viewsBind, __viewsUnbind } from '../core/Views';
 import { ViewSort } from './ViewSort';
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
@@ -57,10 +56,10 @@ class ViewItem {
     this._viewBase = viewBase;
 
     if (doClose) {
-      this._viewBase['doClose'] = doClose;
+      this._viewBase.setCloseHandler(doClose);
     }
     if (doBack) {
-      this._viewBase['doBack'] = doBack;
+      this._viewBase.setBackHandler(doBack);
     }
   }
 
@@ -338,12 +337,12 @@ class TooltipQueue {
   }
 }
 
-/** 视图管理绑定组件 */
-@ccclass('uim.ViewManager')
-@help('https://vangagh.gitbook.io/brief-toolkit/uim/viewmanager')
+/** 场景级视图导航组件 */
+@ccclass('uim.ViewNavigator')
+@help('https://vangagh.gitbook.io/brief-toolkit/uim/viewnavigator')
 @executeInEditMode
-@menu('BriefToolkit/UIM/ViewManager')
-export class ViewManager extends Component implements IViewManager {
+@menu('BriefToolkit/UIM/ViewNavigator')
+export class ViewNavigator extends Component implements IViewManager {
   @property({
     type: Node,
     tooltip: "视图内容节点",
@@ -556,7 +555,7 @@ export class ViewManager extends Component implements IViewManager {
       return;
     }
 
-    this.bindViewManager();
+    this.bindNavigator();
 
     // 预制体添加到模板表
     for (let viewPrefab of this._viewList) {
@@ -594,25 +593,23 @@ export class ViewManager extends Component implements IViewManager {
     }
   }
 
-  //#region 绑定 ViewManager 供 View, MessageBox, Tooltip 调用
-  private bindViewManager() {
-    Views.bind(this);
-    MessageBox.bind(this);
-    Tooltip.bind(this);
+  //#region 绑定 ViewNavigator 供 View, MessageBox, Tooltip 调用
+  // MessageBox 与 Tooltip 通过 Views.current 间接访问，
+  // 确保三者始终指向同一个 ViewNavigator 实例，避免绑定不一致。
+  private bindNavigator() {
+    __viewsBind(this);
   }
 
-  private unbindViewManager() {
-    Views.unbind(this);
-    MessageBox.unbind(this);
-    Tooltip.unbind(this);
+  private unbindNavigator() {
+    __viewsUnbind(this);
   }
 
   protected onEnable(): void {
-    this.bindViewManager();
+    this.bindNavigator();
   }
 
   protected onDisable(): void {
-    this.unbindViewManager();
+    this.unbindNavigator();
   }
   //#endregion
 
@@ -684,7 +681,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @returns 视图类型
    */
-  getViewType(name: string): ViewType {
+  getViewType<T extends string = string>(name: T): ViewType {
     let viewTemplate = this.viewTemplateMap.get(name);
     if (viewTemplate) {
       return viewTemplate.viewType;
@@ -696,9 +693,9 @@ export class ViewManager extends Component implements IViewManager {
    * 检查视图是否存在
    * @param name 视图名称
    * @param type 视图类型
-   * @returns 
+   * @returns
    */
-  checkView(name: string, type?: ViewType): boolean {
+  checkView<T extends string = string>(name: T, type?: ViewType): boolean {
     let viewTemplate = this.viewTemplateMap.get(name);
     if (!viewTemplate) return false;
     if (type && viewTemplate.viewType != type) return false;
@@ -791,9 +788,12 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  show(name: string, data?: any): void {
+  show<T extends string = string>(name: T, data?: any): void {
     let viewType = this.getViewType(name);
-    if (viewType == null) return;
+    if (viewType == null) {
+      Views.onError?.(name, `View "${name}" not registered`);
+      return;
+    }
     switch (viewType) {
       case ViewType.View:
         this.showView(name, data);
@@ -814,7 +814,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  close(name: string, data?: any): void {
+  close<T extends string = string>(name: T, data?: any): void {
     let viewType = this.getViewType(name);
     if (viewType == null) return;
     switch (viewType) {
@@ -839,7 +839,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @returns 是否是当前显示的最上层视图
    */
-  isTopView(name: string): boolean {
+  isTopView<T extends string = string>(name: T): boolean {
     return this.viewStack.isTop(name);
   }
 
@@ -856,24 +856,30 @@ export class ViewManager extends Component implements IViewManager {
 
   /**
    * 显示视图（该视图已经存在则关闭之前所有视图显示该视图）
-   * @param name 视图名称(不填显示默认视图) 
+   * @param name 视图名称(不填显示默认视图)
    * @param data 数据
    */
-  showView(name: string, data?: any): void {
-    if (!this.checkView(name, ViewType.View)) return;
+  showView<T extends string = string>(name: T, data?: any): void {
+    if (!this.checkView(name, ViewType.View)) {
+      Views.onError?.(name, `View "${name}" not registered or wrong type (expected View)`);
+      return;
+    }
 
-    // 使用延迟，防止在onLoad中调用
-    this.scheduleOnce(() => {
+    // 使用微任务延迟，防止在onLoad中调用，同时保证同帧内调用顺序确定
+    Promise.resolve().then(() => {
       if (this.viewStack.popTo(name, data)) {
         return;
       }
       else {
         let viewItem = this.createViewItem(name);
-        if (!viewItem) return;
+        if (!viewItem) {
+          Views.onError?.(name, `Failed to instantiate view "${name}" from template`);
+          return;
+        }
         this.viewStack.push(viewItem, data);
         this.updateContentSiblingIndex();
       }
-    }, 0);
+    });
   }
 
   /**
@@ -881,19 +887,25 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  showAsReplace(name: string, data?: any): void {
-    if (!this.checkView(name, ViewType.View)) return;
+  showAsReplace<T extends string = string>(name: T, data?: any): void {
+    if (!this.checkView(name, ViewType.View)) {
+      Views.onError?.(name, `View "${name}" not registered or wrong type (expected View)`);
+      return;
+    }
 
-    // 使用延迟，防止在onLoad中调用
-    this.scheduleOnce(() => {
+    // 使用微任务延迟，防止在onLoad中调用，同时保证同帧内调用顺序确定
+    Promise.resolve().then(() => {
       let viewItem = this.viewStack.detach(name);
       if (!viewItem) {
         viewItem = this.createViewItem(name);
-        if (!viewItem) return;
+        if (!viewItem) {
+          Views.onError?.(name, `Failed to instantiate view "${name}" from template`);
+          return;
+        }
       }
       this.viewStack.replaceTop(viewItem, data);
       this.updateContentSiblingIndex();
-    }, 0);
+    });
   }
 
   /**
@@ -901,19 +913,25 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  showAsRoot(name: string, data?: any): void {
-    if (!this.checkView(name, ViewType.View)) return;
+  showAsRoot<T extends string = string>(name: T, data?: any): void {
+    if (!this.checkView(name, ViewType.View)) {
+      Views.onError?.(name, `View "${name}" not registered or wrong type (expected View)`);
+      return;
+    }
 
-    // 使用延迟，防止在onLoad中调用
-    this.scheduleOnce(() => {
+    // 使用微任务延迟，防止在onLoad中调用，同时保证同帧内调用顺序确定
+    Promise.resolve().then(() => {
       let viewItem = this.viewStack.detach(name);
       if (!viewItem) {
         viewItem = this.createViewItem(name);
-        if (!viewItem) return;
+        if (!viewItem) {
+          Views.onError?.(name, `Failed to instantiate view "${name}" from template`);
+          return;
+        }
       }
       this.viewStack.setAsRoot(viewItem, data);
       this.updateContentSiblingIndex();
-    }, 0);
+    });
   }
 
   /**
@@ -929,7 +947,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 视图名称
    * @param data 数据
    */
-  closeView(name: string, data?: any): void {
+  closeView<T extends string = string>(name: T, data?: any): void {
     if (!this.checkView(name, ViewType.View)) return;
     this.viewStack.remove(name, data);
   }
@@ -946,7 +964,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 消息框名称(不填显示默认消息框)
    * @param data 数据
    */
-  showMessageBox(name: string, data: any): boolean;
+  showMessageBox<T extends string = string>(name: T, data: any): boolean;
   showMessageBox(...args: any[]): boolean {
     let name: string;
     let data: any;
@@ -960,10 +978,11 @@ export class ViewManager extends Component implements IViewManager {
 
     if (!name) name = this._defaultMessageBox;
     if (!this.checkView(name, ViewType.MessageBox)) {
+      Views.onError?.(name, `MessageBox "${name}" not registered or wrong type`);
       return false;
     }
 
-    // 重复消息框，只更新数据
+    // 重复消息框，更新数据（已由 MessageBoxBase 内部处理）
     let viewItem = this.messageBoxArray.getViewItem(name);
     if (viewItem) {
       viewItem.data(data);
@@ -972,6 +991,7 @@ export class ViewManager extends Component implements IViewManager {
 
     viewItem = this.createViewItem(name);
     if (!viewItem) {
+      Views.onError?.(name, `Failed to instantiate MessageBox "${name}" from template`);
       return false;
     }
 
@@ -985,11 +1005,11 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 消息框名称(不填关闭默认消息框)
    * @param data 数据
    */
-  closeMessageBox(name?: string, data?: any): void {
-    if (!name) name = this._defaultMessageBox;
-    if (!this.checkView(name, ViewType.MessageBox)) return;
+  closeMessageBox<T extends string = string>(name?: T, data?: any): void {
+    const n = (name as string) || this._defaultMessageBox;
+    if (!this.checkView(n, ViewType.MessageBox)) return;
 
-    let viewItem = this.messageBoxArray.getViewItem(name);
+    let viewItem = this.messageBoxArray.getViewItem(n);
     if (viewItem) {
       this.messageBoxArray.remove(viewItem, data);
     }
@@ -1007,7 +1027,7 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 提示框名称(不填显示默认提示框)
    * @param data 数据
    */
-  showTooltip(name: string, data: any): boolean;
+  showTooltip<T extends string = string>(name: T, data: any): boolean;
   showTooltip(...args: any[]): boolean {
     let name: string;
     let data: any;
@@ -1021,10 +1041,11 @@ export class ViewManager extends Component implements IViewManager {
 
     if (!name) name = this._defaultTooltip;
     if (!this.checkView(name, ViewType.Tooltip)) {
+      Views.onError?.(name, `Tooltip "${name}" not registered or wrong type`);
       return false;
     }
 
-    // 重复提示框，只更新数据
+    // 重复提示框，更新数据
     let viewItem = this.tooltipArray.getViewItem(name);
     if (viewItem) {
       viewItem.data(data);
@@ -1033,6 +1054,7 @@ export class ViewManager extends Component implements IViewManager {
 
     viewItem = this.createViewItem(name);
     if (!viewItem) {
+      Views.onError?.(name, `Failed to instantiate Tooltip "${name}" from template`);
       return false;
     }
 
@@ -1046,11 +1068,11 @@ export class ViewManager extends Component implements IViewManager {
    * @param name 提示框名称(不填关闭默认提示框)
    * @param data 数据
    */
-  closeTooltip(name?: string, data?: any): void {
-    if (!name) name = this._defaultTooltip;
-    if (!this.checkView(name, ViewType.Tooltip)) return;
+  closeTooltip<T extends string = string>(name?: T, data?: any): void {
+    const n = (name as string) || this._defaultTooltip;
+    if (!this.checkView(n, ViewType.Tooltip)) return;
 
-    let viewItem = this.tooltipArray.getViewItem(name);
+    let viewItem = this.tooltipArray.getViewItem(n);
     if (viewItem) {
       this.tooltipArray.remove(viewItem, data);
     }

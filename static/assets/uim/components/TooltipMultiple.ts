@@ -6,18 +6,17 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2024-08-29
- * @modified 2026-03-13
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Node, Enum, EventTouch, Label, Button, instantiate } from "cc";
 import { VIEW_TYPE_TOOLTIP, ViewBase } from "./ViewBase";
-import { TooltipData, ViewSortIndex } from "../core/IViewManager";
+import { TooltipData } from "../core/IViewManager";
 import { ViewEvent, ViewState, ViewType } from "../core/IViewManager";
 import { EDITOR } from "cc/env";
-import { VIEW_SORT_TOOLTIP } from "./ViewSort";
 
 const { ccclass, help, menu, property } = _decorator;
 
@@ -26,14 +25,6 @@ const { ccclass, help, menu, property } = _decorator;
 @help('https://vangagh.gitbook.io/brief-toolkit/uim/tooltipmultiple')
 @menu('BriefToolkit/UIM/TooltipMultiple')
 export class TooltipMultiple extends ViewBase {
-  @property({
-    type: Enum(ViewSortIndex),
-    tooltip: VIEW_SORT_TOOLTIP,
-    override: true,
-    visible: false,
-  })
-  sortIndex: ViewSortIndex = ViewSortIndex.Tooltip;
-
   @property({
     type: Enum(ViewType),
     tooltip: VIEW_TYPE_TOOLTIP,

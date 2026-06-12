@@ -1,8 +1,9 @@
 /**
  * ViewSort.ts - 视图排序绑定组件
- * @description 该组件提供了视图排序的绑定功能，通过设置视图的排序索引来控制视图在不同层级的显示顺序，确保用户界面元素按照预期的层级关系进行渲染。
+ * @description 该组件提供了视图排序的绑定功能，通过设置视图的排序索引来控制视图在不同层级的显示顺序，
+ * 确保用户界面元素按照预期的层级关系进行渲染。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/uim/viewsort}
- * 
+ *
  * @author eathonq
  * @license MIT
  * @version v1.0.0
@@ -11,7 +12,7 @@
  * @modified 2026-03-22
  */
 
-import { _decorator, Component, Enum, Node } from 'cc';
+import { _decorator, Component, Enum } from 'cc';
 import { ViewSortIndex } from '../core/IViewManager';
 const { ccclass, property, menu } = _decorator;
 

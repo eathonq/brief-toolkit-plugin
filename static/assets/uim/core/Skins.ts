@@ -1,138 +1,88 @@
 /**
- * Skins.ts - 皮肤管理静态类
- * @description 该类提供全局访问接口，实际逻辑由当前激活的 SkinManager 组件实现。
+ * Skins.ts - 皮肤管理静态类（Null Object 兜底）
+ * @description 该类提供全局访问接口，自动回退到 DefaultSkinManager 确保 ViewModel 中
+ *              的调用永不崩溃。所有方法代理到 ISkinManager 的具体实现。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/uim/skins}
- * 
+ *
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.2.0
+ *
  * @created 2026-03-14
- * @modified 2026-03-14
+ * @modified 2026-06-11
  */
 
 import { ISkinManager, SkinItem, SkinThemeState, ThemeDef } from "./ISkinManager";
+import { DefaultSkinManager } from "./DefaultSkinManager";
 
-/** 
- * 皮肤管理静态类，提供全局访问接口，实际逻辑由当前激活的 SkinManager 组件实现
- * @help https://vangagh.gitbook.io/brief-toolkit/uim/skins
+/**
+ * 模块级私有状态。
+ * 不挂载在 Skins 类上，避免通过 pure.ts 导出暴露给外部使用者。
  */
+let _currentSkinManager: ISkinManager | undefined;
+
+/**
+ * @internal 绑定真实 Manager（由 SkinManager 构造函数自动调用）
+ *
+ * 本函数不通过 pure.ts / index.ts 重导出，外部使用者无法访问。
+ */
+export function __skinsBind(manager: ISkinManager): void {
+  _currentSkinManager = manager;
+}
+
+/**
+ * @internal 解绑 Manager
+ */
+export function __skinsUnbind(manager: ISkinManager): void {
+  if (_currentSkinManager === manager) {
+    _currentSkinManager = undefined;
+  }
+}
+
+/** 皮肤管理静态门面 */
 export class Skins {
-  private static _currentSkinManager?: ISkinManager;
-  static bind(skinManager: ISkinManager): void {
-    Skins._currentSkinManager = skinManager;
-  }
-  static unbind(skinManager: ISkinManager): void {
-    if (Skins._currentSkinManager === skinManager) {
-      Skins._currentSkinManager = undefined;
-    }
-  }
-  private static checkCurrentSkinManager(): boolean {
-    if (!Skins._currentSkinManager) {
-      console.warn("Skins: currentSkinManager is not set.");
-      return false;
-    }
-    return true;
+  /**
+   * 获取当前 Manager。
+   * 若未绑定真实 SkinManager，自动回退到 DefaultSkinManager（Null Object），
+   * 确保 ViewModel 中的调用永不因未绑定而崩溃。
+   */
+  private static get current(): ISkinManager {
+    return _currentSkinManager ?? DefaultSkinManager.instance;
   }
 
-  /**
-   * 恢复主题状态
-   * 直接应用状态，并在设置active时确保唯一性
-   */
   static restoreState(state: SkinThemeState): void {
-    if (!Skins.checkCurrentSkinManager()) {
-      return;
-    }
-    Skins._currentSkinManager.restoreState(state);
+    Skins.current.restoreState(state);
   }
 
-  /**
-   * 获取当前状态
-   */
   static getState(): SkinThemeState {
-    if (!Skins.checkCurrentSkinManager()) {
-      return;
-    }
-    return Skins._currentSkinManager.getState();
+    return Skins.current.getState();
   }
 
-  /**
-   * 获取所有主题
-   * @returns 
-   */
   static getAllThemes(): ThemeDef[] {
-    if (!Skins.checkCurrentSkinManager()) {
-      return [];
-    }
-    return Skins._currentSkinManager.getAllThemes();
+    return Skins.current.getAllThemes();
   }
 
-  /**
-   * 获取主题的皮肤项列表
-   * @param themeKey 
-   * @returns 
-   */
   static getThemeItems(themeKey: string): SkinItem[] {
-    if (!Skins.checkCurrentSkinManager()) {
-      return [];
-    }
-    return Skins._currentSkinManager.getThemeItems(themeKey);
+    return Skins.current.getThemeItems(themeKey);
   }
 
-  /**
-  * 切换主题
-  * @param themeKey 
-  */
   static switchTheme(themeKey: string): void {
-    if (!Skins.checkCurrentSkinManager()) {
-      return;
-    }
-    Skins._currentSkinManager.switchTheme(themeKey);
+    Skins.current.switchTheme(themeKey);
   }
 
-  /**
-   * 当前主题下设置激活项
-   * @param key
-   */
   static setActiveItem(key: string): boolean {
-    if (!Skins.checkCurrentSkinManager()) {
-      return false;
-    }
-    return Skins._currentSkinManager.setActiveItem(key);
+    return Skins.current.setActiveItem(key);
   }
 
-  /**
-   * 当前主题下设置可用状态
-   * @param key
-   * @param enable
-   */
   static setItemEnable(key: string, enable: boolean): boolean {
-    if (!Skins.checkCurrentSkinManager()) {
-      return false;
-    }
-    return Skins._currentSkinManager.setItemEnable(key, enable);
+    return Skins.current.setItemEnable(key, enable);
   }
 
-  /**
-   * 当前主题下设置锁定状态
-   * @param key
-   * @param locked
-   */
   static setItemLocked(key: string, locked: boolean): boolean {
-    if (!Skins.checkCurrentSkinManager()) {
-      return false;
-    }
-    return Skins._currentSkinManager.setItemLocked(key, locked);
+    return Skins.current.setItemLocked(key, locked);
   }
 
-  /**
-   * 获取当前主题下的皮肤图片路径
-   * @param key
-   */
-  static getSpriteUrl(key: string): string | null {
-    if (!Skins.checkCurrentSkinManager()) {
-      return null;
-    }
-    return Skins._currentSkinManager.getSpriteUrl(key);
+  static getSpriteUrl(key: string, themeKey?: string): string | null {
+    return Skins.current.getSpriteUrl(key, themeKey);
   }
 }

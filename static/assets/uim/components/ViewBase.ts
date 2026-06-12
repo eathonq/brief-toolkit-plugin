@@ -1,15 +1,16 @@
 /**
  * ViewBase.ts - 视图基础绑定组件
- * @description 该组件提供了视图的基础功能，包括视图类型、缓存选项和基本的关闭/返回事件处理，为其他具体视图组件提供统一的基础。
+ * @description 该组件提供了视图的基础功能，包括视图类型、缓存选项和基本的关闭/返回事件处理，
+ * 为其他具体视图组件提供统一的基础。
  * @important 继承于 ViewSort 默认提供的实现，也可以自己实现View的基础逻辑，挂载在自定义的视图预制体。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/uim/viewbase}
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2023-02-06
- * @modified 2024-08-31
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Node, Enum, EventTouch, Label } from "cc";
@@ -95,8 +96,18 @@ export class ViewBase extends ViewSort {
     this.doClose?.(this.viewName);
   }
 
+  /** @internal 由 ViewNavigator 注入关闭回调 */
+  public setCloseHandler(handler: (name: string, data?: any) => void): void {
+    this.doClose = handler;
+  }
+
   protected doBack: () => void = null;
   onBackEvent(event: EventTouch, customEventData: string) {
     this.doBack?.();
+  }
+
+  /** @internal 由 ViewNavigator 注入返回回调 */
+  public setBackHandler(handler: () => void): void {
+    this.doBack = handler;
   }
 }

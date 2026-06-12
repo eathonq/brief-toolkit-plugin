@@ -6,18 +6,20 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.1.0
+ *
  * @created 2023-03-02
- * @modified 2026-03-11
+ * @modified 2026-06-09
  */
 
-import { _decorator, Enum, CCClass, Node } from "cc";
+import { _decorator, Enum, CCClass, Node, game, Game } from "cc";
 import { EDITOR } from "cc/env";
 import { reactive } from "../core/Reactive";
 import { DataContext } from "./DataContext";
 import { decoratorData } from "../core/DecoratorData";
-import { IViewModel } from "../";
+import { BaseViewModel } from "../core/BaseViewModel";
+import { MessageBus, SubscriptionToken } from "../core/MessageBus";
+import { ErrorBoundary } from "../core/ErrorBoundary";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -31,8 +33,8 @@ const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 @menu("BriefToolkit/Mvvm/ViewModel")
 export class ViewModel extends DataContext {
 
-  private get viewModelData(): IViewModel | null {
-    return this._data as IViewModel | null;
+  private get viewModelData(): BaseViewModel | null {
+    return this._data as BaseViewModel | null;
   }
 
   @property
@@ -119,8 +121,17 @@ export class ViewModel extends DataContext {
 
   //#endregion
 
+  // ──────────── 生命周期追踪 ────────────
+
+  /** @event 自动订阅产生的令牌，销毁时统一解绑 */
+  private _eventTokens: SubscriptionToken[] = [];
+  /** 应用前后台事件监听引用 */
+  private _gameShowHandler: (() => void) | null = null;
+  private _gameHideHandler: (() => void) | null = null;
+
+  // ──────────── Runtime ────────────
+
   protected onLoad() {
-    // 根节点
     this.isRoot = true;
 
     super.onLoad();
@@ -129,17 +140,30 @@ export class ViewModel extends DataContext {
       return;
     }
 
-    // 组件数据初始化
+    // 组件数据初始化（创建 VM 实例）
     this.onUpdateData();
 
-    if (this._data) {
-      ViewModelData.register(this._data, this._viewModelName, this.node);
-    }
+    const vm = this.viewModelData;
+    if (!vm) return;
 
-    // 下一帧执行，确保数据初始化完成
+    // 注册到全局表
+    ViewModelData.register(this._data as object, this._viewModelName, this.node);
+
+    // 自动订阅 @event 装饰的方法（走全局 MessageBus）
+    this._bindEventDecorators(vm);
+
+    // 节点显隐 → onEnable / onDisable
+    this.node.on(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, this._onNodeActiveChanged, this);
+
+    // 应用前后台 → onAppShow / onAppHide
+    this._gameShowHandler = () => ErrorBoundary.tryRun(() => vm.onAppShow(), vm, 'onAppShow');
+    this._gameHideHandler = () => ErrorBoundary.tryRun(() => vm.onAppHide(), vm, 'onAppHide');
+    game.on(Game.EVENT_SHOW, this._gameShowHandler);
+    game.on(Game.EVENT_HIDE, this._gameHideHandler);
+
+    // 下一帧执行 onLoaded，确保 UI 绑定已完成
     this.scheduleOnce(() => {
-      const data = this.viewModelData;
-      data?.onLoaded?.call(data);
+      ErrorBoundary.tryRun(() => vm.onLoaded(), vm, 'onLoaded');
     });
   }
 
@@ -147,34 +171,89 @@ export class ViewModel extends DataContext {
     super.onDestroy();
     if (EDITOR) return;
 
-    if (this._data) {
-      ViewModelData.unregister(this._data);
-      const data = this.viewModelData;
-      data?.onDestroy?.call(data);
+    const vm = this.viewModelData;
+    if (vm) {
+      // 解绑 @event
+      for (const token of this._eventTokens) {
+        MessageBus.offByToken(token);
+      }
+      this._eventTokens.length = 0;
+
+      // 解绑节点事件
+      this.node.off(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, this._onNodeActiveChanged, this);
+
+      // 解绑应用事件
+      if (this._gameShowHandler) {
+        game.off(Game.EVENT_SHOW, this._gameShowHandler);
+        this._gameShowHandler = null;
+      }
+      if (this._gameHideHandler) {
+        game.off(Game.EVENT_HIDE, this._gameHideHandler);
+        this._gameHideHandler = null;
+      }
+
+      // 从全局表注销
+      ViewModelData.unregister(this._data as object);
+
+      // VM 销毁回调
+      ErrorBoundary.tryRun(() => vm.onDestroy(), vm, 'onDestroy');
       this._data = null;
     }
   }
 
   protected update(dt: number) {
     if (EDITOR) return;
-
-    const data = this.viewModelData;
-    data?.onUpdate?.call(data, dt);
+    const vm = this.viewModelData;
+    if (vm) {
+      ErrorBoundary.tryRun(() => vm.onUpdate(dt), vm, 'onUpdate');
+    }
   }
 
   protected onUpdateData() {
-    // 绑定数据设置
     this.parent = this;
-    // 创建视图模型
-    const vm = decoratorData.createInstance(this._viewModelName);
+    // 创建视图模型实例
+    const vm = decoratorData.createInstance(this._viewModelName) as BaseViewModel | null;
     if (!vm) {
       console.error(`ViewModel: ${this.node.name} onLoad createInstance is null`);
       return;
     }
-    // 创建响应式视图模型
-    const reactive_vm = reactive(vm);
-    this._data = reactive_vm;
+    // onCreate 在 reactive 包装前调用
+    ErrorBoundary.tryRun(() => vm.onCreate(), vm, 'onCreate');
+    // 包装为响应式
+    this._data = reactive(vm);
   }
+
+  // ──────────── 私有 ────────────
+
+  /**
+   * 读取 @event 元数据，自动订阅消息总线
+   */
+  private _bindEventDecorators(vm: BaseViewModel): void {
+    const eventList = decoratorData.getEventList(this._viewModelName);
+    for (const evt of eventList) {
+      const handler = (vm as unknown as Record<string, unknown>)[evt.handler];
+      if (typeof handler === 'function') {
+        const boundHandler = (handler as Function).bind(vm);
+        const token = MessageBus.on(evt.name, (payload: unknown) => {
+          ErrorBoundary.tryRun(() => boundHandler(payload), vm, `@event:${evt.name}`);
+        });
+        this._eventTokens.push(token);
+      }
+    }
+  }
+
+  /**
+   * 节点 active 变化 → onEnable / onDisable
+   */
+  private _onNodeActiveChanged = () => {
+    const vm = this.viewModelData;
+    if (!vm) return;
+    if (this.node.activeInHierarchy) {
+      ErrorBoundary.tryRun(() => vm.onEnable(), vm, 'onEnable');
+    } else {
+      ErrorBoundary.tryRun(() => vm.onDisable(), vm, 'onDisable');
+    }
+  };
 }
 
 /**
@@ -246,7 +325,7 @@ export class ViewModelData {
   /**
    * 通过名称和节点获取对应的对象
    */
-  static getTargetByNode<T = any>(name: string, node: Node): T | null {
+  static getTargetByNode<T = unknown>(name: string, node: Node): T | null {
     const targetMap = this._bindings.get(name);
     if (!targetMap) return null;
 
@@ -261,7 +340,7 @@ export class ViewModelData {
   /**
    * 通过名称获取第一个对象
    */
-  static getFirstTarget<T = any>(name: string): T | null {
+  static getFirstTarget<T = unknown>(name: string): T | null {
     const targetMap = this._bindings.get(name);
     if (!targetMap) return null;
 
@@ -315,7 +394,7 @@ export class ViewModelData {
   /**
    * 获取指定名称的所有对象
    */
-  static getAllTargets<T = any>(name: string): T[] {
+  static getAllTargets<T = unknown>(name: string): T[] {
     const targetMap = this._bindings.get(name);
     if (!targetMap) return [];
 
@@ -360,7 +439,7 @@ export class ViewModelData {
   /**
    * 获取节点绑定的第一个对象（不考虑名称）
    */
-  static getTargetByNodeOnly<T = any>(node: Node): T | null {
+  static getTargetByNodeOnly<T = unknown>(node: Node): T | null {
     for (const targetMap of this._bindings.values()) {
       for (const [target, nodes] of targetMap) {
         if (nodes.has(node)) {
@@ -374,7 +453,7 @@ export class ViewModelData {
   /**
    * 获取节点绑定的所有对象（不考虑名称）
    */
-  static getAllTargetsByNodeOnly<T = any>(node: Node): T[] {
+  static getAllTargetsByNodeOnly<T = unknown>(node: Node): T[] {
     const targets: T[] = [];
 
     for (const targetMap of this._bindings.values()) {

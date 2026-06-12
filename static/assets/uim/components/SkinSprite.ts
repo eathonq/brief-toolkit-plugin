@@ -5,16 +5,17 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2024-09-02
- * @modified 2026-03-12
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Node, Sprite } from 'cc';
 import { SkinItemDef } from '../core/ISkinManager';
 import { CCResources } from '../core/CCResources';
 import { Skins } from '../core/Skins';
+import { SkinManager } from '../core/SkinManager';
 
 const { ccclass, help, menu, property, requireComponent } = _decorator;
 
@@ -50,7 +51,13 @@ export class SkinSprite extends Component {
   }
 
   protected onLoad(): void {
+    // 注册到 SkinManager，以便皮肤切换时精确刷新（O(活跃数) 替代全场景遍历）
+    SkinManager._registerSprite(this);
     this.resetValue();
+  }
+
+  protected onDestroy(): void {
+    SkinManager._unregisterSprite(this);
   }
 
   // 重置值

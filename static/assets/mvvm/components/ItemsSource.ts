@@ -16,6 +16,7 @@ import { EDITOR } from 'cc/env';
 import { reactive, watch, WatchHandle } from '../core/Reactive';
 import { DataKind, decoratorData } from '../core/DecoratorData';
 import { DataContext } from "./DataContext";
+import { MvvmNodePool } from '../core/NodePool';
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -33,17 +34,27 @@ export class ItemsSource extends DataContext {
    * 获取绑定的数据
    * @param node 有挂载 ItemsSource 的节点
    */
-  static Data<T = any>(node: Node): T {
+  static Data<T = unknown>(node: Node): T | null {
     let context = node.getComponent(ItemsSource);
     if (!context) return null;
     return context._data as T;
   }
 
   @property({
-    type: Node,
-    tooltip: '模板节点',
+    type: [Node],
+    tooltip: '模板节点（多个支持按数据类型选择）',
   })
-  private template: Node = null;
+  private templates: Node[] = [];
+
+  @property({
+    tooltip: '模板选择字段（数据中决定使用哪个模板的属性名，值为模板索引 0/1/2...）',
+    displayName: 'TemplateField',
+    visible() { return true; },
+  })
+  private _templateField = '';
+
+  /** 对象池 */
+  private _pool: MvvmNodePool = new MvvmNodePool();
 
   @property
   private _isSelected: boolean = false;
@@ -159,6 +170,9 @@ export class ItemsSource extends DataContext {
     // 清理观察函数
     this._itemsWatchHandle?.stop();
     this._itemsWatchHandle = null;
+
+    // 清空对象池
+    this._pool.clear();
   }
 
   /** 观察函数 */
@@ -169,62 +183,72 @@ export class ItemsSource extends DataContext {
       return;
     }
 
+    const dataList = this._data as unknown[];
+
     // 清理旧的观察函数
     this._itemsWatchHandle?.stop();
     this._itemsWatchHandle = null;
 
     // 设置数组观察函数
-    this._itemsWatchHandle = watch(() => this._data.length, (operation) => {
-      // 更新数组
+    // eslint-disable-next-line prefer-const
+    let arrayCb: (operation?: unknown) => void;
+    // 使用 callback.length === 1 让运行时走 WatchCallback 路径
+    arrayCb = (operation: any) => {
       if (!operation) {
-        // 第一次初始化操作
-        this.initItems(this._data);
+        this.initItems(dataList);
         return;
       }
-
-      // 判断删除
-      if (operation.deletedStart >= 0) {
+      if (operation.deletedStart != null && operation.deletedStart >= 0 && operation.deleted) {
         for (let i = 0; i < operation.deleted.length; i++) {
           this.deleteItemByIndex(operation.deletedStart, operation.deleted[i]);
         }
       }
-      // 判断添加
-      if (operation.insertedStart >= 0) {
+      if (operation.insertedStart != null && operation.insertedStart >= 0 && operation.inserted) {
         for (let i = 0; i < operation.inserted.length; i++) {
           let item = operation.inserted[i];
           this.addItem(operation.insertedStart + i, item);
         }
       }
-
-    }, { immediate: true });
+    };
+    this._itemsWatchHandle = watch(() => dataList.length, arrayCb as any, { immediate: true });
   }
 
   private _content: Node = null;
-  private _template: Node = null;
   private initTemplate() {
     if (EDITOR) return;
 
-    if (!this.template) {
+    if (this.templates.length === 0) {
       console.warn(`PATH ${this.getNodePath()} 组件 ItemsSource 没有设置模板节点`);
       return;
     }
-    this._template = this.template;
-    this._content = this._template.parent;
-    this._template.active = false;
-    this._template.removeFromParent();
+    // 所有模板移出场景树并隐藏
+    this._content = this.templates[0].parent;
+    for (const tpl of this.templates) {
+      tpl.active = false;
+      tpl.removeFromParent();
+    }
+  }
+
+  /** 根据 item[templateField] 选择模板；无 templateField 或只有 1 个模板时直接返回 templates[0] */
+  private _getTemplateForItem(item: unknown): Node {
+    if (this.templates.length <= 1 || !this._templateField) return this.templates[0];
+    const idx = Number((item as Record<string, unknown>)?.[this._templateField]);
+    if (Number.isInteger(idx) && idx >= 0 && idx < this.templates.length) {
+      return this.templates[idx];
+    }
+    return this.templates[0];
   }
 
   private _nodeList: Node[] = [];
-  private initItems(dataList: any[]) {
-    // 清理
+  private initItems(dataList: unknown[]) {
+    // 清理 — 回池而非销毁
     this._nodeList = [];
     if (this._content) {
-      this._content.children.forEach((child) => {
-        child.destroy();
-      });
+      for (const child of [...this._content.children]) {
+        this._pool.put(child, this.templates[0]);
+      }
       this._content.removeAllChildren();
     }
-    // 添加默认值
     if (dataList && dataList.length > 0) {
       dataList.forEach((item, index) => {
         this.addItem(index, item);
@@ -232,39 +256,51 @@ export class ItemsSource extends DataContext {
     }
   }
 
-  private addItem(index: number, data: any) {
+  private addItem(index: number, data: unknown) {
     if (index < 0) return;
-    if (!this._template || !this._content) return;
+    if (this.templates.length === 0 || !this._content) return;
 
-    let node = instantiate(this._template);
+    const tpl = this._getTemplateForItem(data);
+    // 池取优先；fromPool 在 instantiate 之前记录
+    const pooled = this._pool.get(tpl);
+    const fromPool = pooled !== null;
+    const node = pooled ?? instantiate(tpl);
+
     this._content.insertChild(node, index);
     node.active = true;
+
+    // 池节点必须在 insertChild 后恢复（此时 getItemIndex 才能找到节点在 content 中的位置）
+    if (fromPool) {
+      this._pool.resumeNode(node);
+    }
+
     this._nodeList.splice(index, 0, node);
 
     if (this._isSelected) {
       node.off(Node.EventType.TOUCH_END);
       node.on(Node.EventType.TOUCH_END, () => {
-        const proxy = reactive(data);
+        const proxy = reactive(data as object);
         if (!this.parent?.dataContext) return;
-        this.parent.dataContext[this._bindingSelectedName] = proxy;
+        (this.parent.dataContext as Record<string, unknown>)[this._bindingSelectedName] = proxy;
       }, this);
     }
   }
 
-  private deleteItemByIndex(index: number, deletedData?: any) {
+  private deleteItemByIndex(index: number, deletedData?: unknown) {
     if (index < 0) return;
     if (index >= this._nodeList.length) return;
 
     const node = this._nodeList[index];
     if (this._isSelected && this.clearSelectedOnDelete && this.parent?.dataContext) {
-      const proxy = reactive(deletedData);
-      if (this.parent.dataContext[this._bindingSelectedName] === proxy) {
-        this.parent.dataContext[this._bindingSelectedName] = null;
+      const proxy = reactive(deletedData as object);
+      if ((this.parent.dataContext as Record<string, unknown>)[this._bindingSelectedName] === proxy) {
+        (this.parent.dataContext as Record<string, unknown>)[this._bindingSelectedName] = null;
       }
     }
 
     node.removeFromParent();
-    node.destroy();
+    const tpl = this._getTemplateForItem(deletedData);
+    this._pool.put(node, tpl);
     this._nodeList.splice(index, 1);
   }
 
@@ -288,38 +324,41 @@ export class ItemsSource extends DataContext {
    * @param target 注册对象
    * @returns 数据上下文
    */
-  getDataContextInRegister(target: any) {
+  getDataContextInRegister(target: object) {
     if (!this._registry.has(target)) return null;
 
-    let index = this.getItemIndex(target.node);
+    // 内部访问 Binding 的私有属性（运行时多态）
+    const b = target as unknown as { node: Node; _bindingName: string; _bindingType: string };
+    let index = this.getItemIndex(b.node);
     if (index < 0) return null;
 
     // 基础类型数据，重新设置上级数据和绑定名称
-    if (target._bindingName === target._bindingType || Number.isInteger(Number(target._bindingName))) {
-      target._bindingName = `${index}`;
+    if (b._bindingName === b._bindingType || Number.isInteger(Number(b._bindingName))) {
+      b._bindingName = `${index}`;
       return this._data;
     }
 
-    return reactive(this._data[index]);
+    return reactive((this._data as unknown[])[index] as object);
   }
 
-  deleteItemWithRegister(target: any) {
+  deleteItemWithRegister(target: object) {
     if (!this._registry.has(target)) return;
 
-    let index = this.getItemIndex(target.node);
+    const bindingTarget = target as unknown as { node: Node };
+    let index = this.getItemIndex(bindingTarget.node);
     if (index < 0) return;
 
-    this._data.splice(index, 1);
+    (this._data as unknown[]).splice(index, 1);
   }
 }
 
 /** ItemsSourceData 静态类 */
 export class ItemsSourceData {
-  /** 
+  /**
    * 获取绑定的数据
    * @param node 有挂载 ItemsSource 的节点
    */
-  static get<T = any>(node: Node): T {
+  static get<T = unknown>(node: Node): T | null {
     return ItemsSource.Data<T>(node);
   }
 }

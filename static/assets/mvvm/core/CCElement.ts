@@ -172,7 +172,7 @@ export class CCElement extends Component {
         binding: [
           {
             name: 'active',
-            kind: [DataKind.Boolean],
+            kind: [DataKind.Boolean, DataKind.Number, DataKind.String, DataKind.Object],
             setValue: (value) => this.setNodeActiveValue(value),
             bindCallback: () => this.bindNodeActiveCallback()
           },
@@ -411,6 +411,16 @@ export class CCElement extends Component {
     this.clearRuntimeListeners();
     this._runtimeSetHandler = null;
     this._runtimeBindHandler = null;
+  }
+
+  /** 暂停：清理 UI 事件监听（对象池回收用） */
+  suspend(): void {
+    this.clearRuntimeListeners();
+  }
+
+  /** 恢复：重建运行时处理器（对象池复用用） */
+  resume(): void {
+    this.refreshRuntimeHandlers();
   }
 
   private getRuntimeBindingConfig(): ElementBinding | null {

@@ -32,7 +32,7 @@ export class DataContext extends Component {
    * 获取绑定数据
    * @param node 有挂载 ViewModel 的节点
    */
-  static Data<T = any>(node: Node): T {
+  static Data<T = unknown>(node: Node): T | null {
     let context = node.getComponent(DataContext);
     if (!context) return null;
     return context._data as T;
@@ -125,10 +125,10 @@ export class DataContext extends Component {
   }
 
   /** 上一级绑定数据 */
-  protected _upperData: any = null;
+  protected _upperData: unknown = null;
 
   /** 当前绑定数据 */
-  protected _data: any = null;
+  protected _data: unknown = null;
   /** 当前绑定数据 */
   get dataContext() {
     return this._data;
@@ -225,20 +225,22 @@ export class DataContext extends Component {
       return;
     }
 
-    this.initParentDataContext();
-
-    // 组件数据初始化
-    this.onUpdateData();
+    this.resume();
   }
 
   protected onDestroy() {
     if (EDITOR) return;
 
-    this._parent?.unregister(this);
+    // 开发模式下检测未清理的子级注册
+    if (this._registry.size > 0) {
+      console.warn(
+        `[DataContext] 节点 "${this.getNodePath()}" 销毁时仍有 ${this._registry.size} 个未解绑的子级注册。`,
+        '注册列表:', [...this._registry.keys()],
+      );
+      this._registry.clear();
+    }
 
-    // 清理观察函数
-    this._watchHandle?.stop();
-    this._watchHandle = null;
+    this.suspend();
   }
 
   protected getNodePath(): string {
@@ -274,16 +276,18 @@ export class DataContext extends Component {
     this._upperData = this._parent.getDataContextInRegister(this);
     if (this._upperData === null) return;
 
+    const upper = this._upperData as Record<string, unknown>;
+
     // 清理旧的观察函数
     this._watchHandle?.stop();
     this._watchHandle = null;
 
-    this._data = reactive(this._upperData[this._bindingName]);
+    this._data = reactive(upper[this._bindingName] as object);
     this.onUpdateDataInternal();
     // 设置观察函数
-    this._watchHandle = watch(() => this._upperData[this._bindingName], (operation) => {
-      if (!operation) return;
-      this._data = reactive(operation.value);
+    this._watchHandle = watch(() => upper[this._bindingName], (op: unknown) => {
+      if (!op) return;
+      this._data = reactive((op as Record<string, unknown>).value as object);
       this.onUpdateDataInternal();
       this._registry.forEach((callback, target) => {
         callback.call(target);
@@ -294,21 +298,21 @@ export class DataContext extends Component {
   /** 绑定数据内部更新，子类重写 */
   protected onUpdateDataInternal() { }
 
-  protected _registry: Map<any, Function> = new Map();
+  protected _registry: Map<object, Function> = new Map();
   /**
    * 注册
-   * @param target 注册对象 
+   * @param target 注册对象
    * @param onUpdateData 数据更新回调
    */
-  register(target: any, onUpdateData: Function) {
+  register(target: object, onUpdateData: Function) {
     this._registry.set(target, onUpdateData);
   }
 
   /**
    * 取消注册
-   * @param target 注册对象 
+   * @param target 注册对象
    */
-  unregister(target: any) {
+  unregister(target: object) {
     this._registry.delete(target);
   }
 
@@ -317,11 +321,27 @@ export class DataContext extends Component {
    * @param target 注册对象
    * @returns 数据上下文
    */
-  getDataContextInRegister(target: any) {
+  getDataContextInRegister(target: object) {
     if (this._registry.has(target)) {
       return this._data;
     }
     return null;
+  }
+
+  // ──────────── 对象池支持 ────────────
+
+  /** 暂停：节点入池前清理响应式依赖和事件 */
+  suspend(): void {
+    this._watchHandle?.stop();
+    this._watchHandle = null;
+    this._parent?.unregister(this);
+    this._parent = null as unknown as DataContext;
+  }
+
+  /** 恢复：节点出池后重新建立上下文和数据监听 */
+  resume(): void {
+    this.initParentDataContext();
+    this.onUpdateData();
   }
 
   /**
@@ -369,9 +389,8 @@ export class DataContextData {
   /**
    * 获取绑定数据
    * @param node 有挂载 ViewModel 的节点
-   * @returns 
    */
-  static get<T = any>(node: Node): T {
+  static get<T = unknown>(node: Node): T | null {
     return DataContext.Data<T>(node);
   }
 }

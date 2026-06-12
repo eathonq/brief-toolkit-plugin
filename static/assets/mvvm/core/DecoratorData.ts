@@ -1,13 +1,13 @@
 /**
  * DecoratorData.ts - 装饰器类数据信息
- * @description 该模块提供装饰器类数据信息，用于标记 ViewModel、Model、属性和方法等。
+ * @description 该模块提供装饰器类数据信息，用于标记 ViewModel、Model、属性、方法和事件。
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.1.0
  * 
  * @created 2023-03-02
- * @modified 2026-03-11
+ * @modified 2026-06-09
  */
 
 /** 装饰器类数据信息 */
@@ -174,6 +174,14 @@ interface FunctionData {
   kind: DataKind,
 }
 
+/** 事件数据 */
+interface EventData {
+  /** 事件名称（总线上的事件名） */
+  name: string,
+  /** 处理方法名（类中的方法名） */
+  handler: string,
+}
+
 /** 类数据 */
 interface ClassData {
   /** 类名字 */
@@ -184,6 +192,8 @@ interface ClassData {
   propertyList: PropertyData[],
   /** 函数列表 */
   functionList: FunctionData[],
+  /** 事件列表 */
+  eventList: EventData[],
 
   /** 是否ViewModel */
   isViewModel: boolean,
@@ -204,8 +214,6 @@ class DecoratorData {
   private _currentClass: ClassData;
   private _pendingOwnerName = '';
   private _classMap = new Map<string, ClassData>();
-  /** 解决ts代码压缩导致类名被修改 */
-  private _unsafePropertyList: PropertyData[] = [];
 
   constructor() {
     // 设置默认的数据类型
@@ -218,6 +226,7 @@ class DecoratorData {
         kind: DataKind.String,
       }],
       functionList: [],
+      eventList: [],
       isViewModel: false,
       isGlobal: false,
       isSetDefaultInEditor: false,
@@ -231,6 +240,7 @@ class DecoratorData {
         kind: DataKind.Number
       }],
       functionList: [],
+      eventList: [],
       isViewModel: false,
       isGlobal: false,
       isSetDefaultInEditor: false,
@@ -244,6 +254,7 @@ class DecoratorData {
         kind: DataKind.Boolean
       }],
       functionList: [],
+      eventList: [],
       isViewModel: false,
       isGlobal: false,
       isSetDefaultInEditor: false,
@@ -256,6 +267,7 @@ class DecoratorData {
       constructor: null,
       propertyList: [],
       functionList: [],
+      eventList: [],
       isViewModel: false,
       isGlobal: false,
       isSetDefaultInEditor: false,
@@ -281,44 +293,32 @@ class DecoratorData {
   }
   private saveCurrentClassInfo() {
     if (this._currentClass) {
-      // 判断并加入到不安全属性列表
-      this._currentClass.propertyList.forEach((property) => {
-        if (property.type.includes('obj-')) {
-          this._unsafePropertyList.push(property);
-        }
-      });
       this._classMap.set(this._currentClass.name, this._currentClass);
       this._currentClass = null;
       this._pendingOwnerName = '';
-
-      // 检查不安全属性
-      this.checkUnsafeProperty();
     }
   }
 
   private toPropertyName(key: string | symbol) {
     return typeof key === 'symbol' ? key.toString() : key;
   }
-  private getSafeObjTypeName(type: string) {
-    const typeName = type.replace('obj-', '');
-    // 从_classMap数据中获取，判断 ClassData.constructor.name 是否等于 typeName
+
+  /**
+   * 惰性解析 obj-* 类型名 → 已注册的类名
+   *
+   * 当 @prop(MyClass) 在 MyClass 的 @model 注册之前执行时，
+   * type 字段会暂时存储为 `obj-MyClass`。此方法在每次查询时
+   * 尝试实时解析，找到已注册的类型即替换。
+   */
+  private _resolveObjTypeName(type: string): string {
+    if (!type.startsWith('obj-')) return type;
+    const constructorName = type.slice(4);
     for (const [key, value] of this._classMap) {
-      if (value.constructor.name === typeName) {
+      if (value.constructor.name === constructorName) {
         return key;
       }
     }
-    return '';
-  }
-  private checkUnsafeProperty() {
-    for (let i = this._unsafePropertyList.length - 1; i >= 0; i--) {
-      const property = this._unsafePropertyList[i];
-      const typeName = this.getSafeObjTypeName(property.type);
-      if (typeName) {
-        property.type = typeName;
-        // 从不安全属性列表中移除
-        this._unsafePropertyList.splice(i, 1);
-      }
-    }
+    return type; // 仍未找到，保持原样
   }
 
   /**
@@ -400,6 +400,12 @@ class DecoratorData {
     const classInfo = this.getCurrentClassInfo(constructor?.name);
     const functionName = this.toPropertyName(key);
     classInfo.functionList.push({ name: functionName, kind: DataKind.Function });
+  }
+
+  addEvent(constructor: any, key: string | symbol, eventName: string) {
+    const classInfo = this.getCurrentClassInfo(constructor?.name);
+    const handlerName = this.toPropertyName(key);
+    classInfo.eventList.push({ name: eventName, handler: handlerName });
   }
 
   addModel(constructor: any, name: string, global: boolean) {
@@ -492,6 +498,10 @@ class DecoratorData {
   getPropertyList(name: string) {
     const classInfo = this._classMap.get(name);
     if (classInfo) {
+      // 惰性解析 obj-* 类型名（当引用的 class 在查询时已被注册，则替换为正确的类型名）
+      for (const prop of classInfo.propertyList) {
+        prop.type = this._resolveObjTypeName(prop.type);
+      }
       return classInfo.propertyList;
     }
     return [];
@@ -506,6 +516,19 @@ class DecoratorData {
     const classInfo = this._classMap.get(name);
     if (classInfo) {
       return classInfo.functionList;
+    }
+    return [];
+  }
+
+  /**
+   * 获取事件列表
+   * @param name 类名字
+   * @returns
+   */
+  getEventList(name: string) {
+    const classInfo = this._classMap.get(name);
+    if (classInfo) {
+      return classInfo.eventList;
     }
     return [];
   }

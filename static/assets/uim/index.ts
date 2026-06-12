@@ -1,27 +1,27 @@
 /**
- * index.ts - UIM模块入口
- * @description 该文件提供UIM（User Interface Management）管理相关的导出，包括视图管理、音频管理和皮肤管理。
- * 
+ * index.ts - UIM 模块入口
+ * @description 该文件提供 UIM（User Interface Management）管理相关的导出，包括视图管理、音频管理和皮肤管理。
+ *
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.2.0
+ *
  * @created 2024-08-12
- * @modified 2026-03-13
+ * @modified 2026-06-10
  */
 
-export { ViewEvent, ViewState, ViewType, MessageBoxButtons, MessageBoxResult } from './core/IViewManager';
-export type { MessageBoxData, TooltipData } from './core/IViewManager';
-export { ViewManager } from './components/ViewManager';
-export { Views } from './core/Views';
-export { MessageBox } from './core/MessageBox';
-export { Tooltip } from './core/Tooltip';
+// ──────────── Cocos Component（挂载到场景节点）────────────
+export { ViewNavigator } from './components/ViewNavigator';
+export { AudioManager } from './core/AudioManager';
+export { AudioSetting } from './components/AudioSetting';
+export { SkinManager } from './core/SkinManager';
+export { SkinSetting } from './components/SkinSetting';
 
-export { AudioManager } from './components/AudioManager';
-export { Audios } from './core/Audios';
+// ──────────── 场景管理器（普通类，非 Component，应用启动时 init()）────────────
+export { SceneManager } from './core/SceneManager';
 
-export type { SkinItemDef, SkinItemState, SkinItem, SkinThemeConfig, SkinThemeState, ThemeDef } from './core/ISkinManager';
-export { SkinManager } from './components/SkinManager';
-export { Skins } from './core/Skins';
-
+// ──────────── Cocos 依赖的资源工具 ────────────
 export { CCResources as Resources } from './core/CCResources';
+
+// ──────────── 纯 TS API（ViewModel 可用，零 Cocos 依赖）────────────
+export * from './pure';

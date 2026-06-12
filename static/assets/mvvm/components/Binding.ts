@@ -5,10 +5,10 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.1.0
  * 
  * @created 2023-03-02
- * @modified 2026-03-11
+ * @modified 2026-06-10
  */
 
 import { _decorator, Node, Enum, Sprite, Button, CCClass, Label, ProgressBar } from 'cc';
@@ -49,7 +49,7 @@ export class Binding extends CCElement {
    * @param node 有挂载 Binding 的节点
    * @param isParent 是否获取上级数据, 默认为 false
    */
-  static Data<T = any>(node: Node, isParent = false): T {
+  static Data<T = unknown>(node: Node, isParent = false): T | null {
     let binding = node.getComponent(Binding);
     if (!binding) return null;
     if (!binding._parent) return null;
@@ -60,7 +60,7 @@ export class Binding extends CCElement {
     if (isParent)
       return dataContext as T;
     else
-      return dataContext[binding._bindingName] as T;
+      return (dataContext as Record<string, unknown>)[binding._bindingName] as T;
   }
 
   /** 数据上下文路径 */
@@ -136,10 +136,10 @@ export class Binding extends CCElement {
   }
 
   /** 上一级绑定数据 */
-  private _upperData: any = null;
+  private _upperData: unknown = null;
 
   /** 当前绑定数据 */
-  protected _data: any = null;
+  protected _data: unknown = null;
   /** 当前绑定数据 */
   get dataContext() {
     return this._data;
@@ -316,50 +316,74 @@ export class Binding extends CCElement {
 
   protected onLoad() {
     super.onLoad();
-
     if (EDITOR) {
       this.checkEditorComponent();
       return;
     }
+    this._resumeBinding();
+  }
 
+  protected onDestroy() {
+    if (EDITOR) return;
+    this._suspendBinding();
+    super.onDestroy();
+  }
+
+  // ──────────── 对象池支持 ────────────
+
+  /** 暂停：节点入池前清理响应式依赖和事件 */
+  suspend(): void {
+    if (EDITOR) return;
+    this._suspendBinding();
+    super.suspend(); // CCElement 清理 UI 事件监听
+  }
+
+  /** 恢复：节点出池后重新建立上下文和数据监听 */
+  resume(): void {
+    if (EDITOR) return;
+    this._resumeBinding();
+    super.resume(); // CCElement 重建运行时处理器
+  }
+
+  // ──────────── 共享逻辑 ────────────
+
+  private _suspendBinding(): void {
+    this._watchHandle?.stop();
+    this._watchHandle = null;
+    this._parent?.unregister(this);
+    this._parent = null as unknown as DataContext;
+  }
+
+  private _resumeBinding(): void {
     this.initParentDataContext();
+    this._applyBindingMode();
+    this.onUpdateData();
+  }
 
-    // 设置绑定模式
+  /** 根据 _bindingMode 设置 _isObservable 和 UI 事件回调 */
+  private _applyBindingMode(): void {
+    // 无父上下文的 Binding 只设 observable 标记，不注册 UI 事件回调
+    const hasParent = !!this._parent;
+
     switch (this._bindingMode) {
       case BindingMode.TwoWay:
-        //this._parent?.bind(this._path, this.onDataChange, this);
         this._isObservable = true;
-        this.onElementCallback(this.onElementValueChange.bind(this));
+        if (hasParent) this.onElementCallback(this.onElementValueChange.bind(this));
         break;
       case BindingMode.OneWay:
         this._isObservable = true;
         break;
       case BindingMode.OneTime:
-        this._isObservable = true; // 在数据回调通知的时候判断接触绑定
+        this._isObservable = true;
         break;
       case BindingMode.OneWayToSource:
-        this.onElementCallback(this.onElementValueChange.bind(this));
+        if (hasParent) this.onElementCallback(this.onElementValueChange.bind(this));
         break;
       default:
         console.warn(`PATH ${this.getNodePath()} 组件 Binding 绑定模式异常，已回退到 OneWay。`);
         this._isObservable = true;
         break;
     }
-
-    // 组件数据初始化
-    this.onUpdateData();
-  }
-
-  protected onDestroy() {
-    super.onDestroy();
-
-    if (EDITOR) return;
-
-    this._parent?.unregister(this);
-
-    // 清理观察函数
-    this._watchHandle?.stop();
-    this._watchHandle = null;
   }
 
   private initParentDataContext() {
@@ -397,30 +421,33 @@ export class Binding extends CCElement {
       return;
     }
 
-    this._data = this._upperData[this._bindingName];
+    // 类型收窄：此时 _upperData 是对象类型
+    const upper = this._upperData as Record<string, unknown>;
+
+    this._data = upper[this._bindingName];
     if (this._isObservable) {
       // 设置观察函数
       if (this._bindingType === 'Vec') {
         this._watchHandle = watch(() => {
-          const data = this._upperData[this._bindingName];
+          const data = upper[this._bindingName];
           if (data && typeof data === 'object') {
             // 在 getter 阶段访问 xyz，确保建立 Vec 子属性依赖。
-            data.x;
-            data.y;
-            data.z;
+            (data as Record<string, unknown>).x;
+            (data as Record<string, unknown>).y;
+            (data as Record<string, unknown>).z;
           }
           return data;
         }, (operation) => {
           if (!operation) return;
           // 子属性变化时 operation.value 可能是 number，这里统一回读完整 Vec。
-          const data = this._upperData[this._bindingName];
+          const data = upper[this._bindingName];
           this.setDataValue(data);
         });
       }
       else {
-        this._watchHandle = watch(() => this._upperData[this._bindingName], (operation) => {
-          if (!operation) return;
-          const data = operation.value;
+        this._watchHandle = watch(() => upper[this._bindingName], (op: unknown) => {
+          if (!op) return;
+          const data = (op as Record<string, unknown>).value;
           this.setDataValue(data);
         });
       }
@@ -439,40 +466,40 @@ export class Binding extends CCElement {
     }
   }
 
-  private onElementValueChange(value: any) {
+  private onElementValueChange(value: unknown) {
     if (this._bindingName === ITEMS_SOURCE_DELETE) {
+      if (!this._parent) {
+        console.warn(`PATH ${this.getNodePath()} ITEMS_SOURCE_DELETE 绑定的删除按钮找不到 ItemsSource 父上下文`);
+        return;
+      }
       const itemsSource = this._parent as ItemsSource;
       itemsSource.deleteItemWithRegister(this);
       return;
     }
 
-    if (!this._upperData) return;
+    const upper = this._upperData as Record<string, unknown> | null;
+    if (!upper) return;
 
-    const member = this._upperData[this._bindingName];
+    const member = upper[this._bindingName];
     if (typeof member === 'function') {
-      member.call(this._upperData, value);
-      // 如果是数组参数，展开传参
-      // if (Array.isArray(value)) {
-      //   member.call(this._upperData, ...value);
-      // }
-      // else {
-      //   member.call(this._upperData, value);
-      // }
+      member.call(upper, value);
       return;
     }
 
-    if (Object.prototype.hasOwnProperty.call(this._upperData, this._bindingName)) {
+    if (Object.prototype.hasOwnProperty.call(upper, this._bindingName)) {
       if (this._bindingType === 'Vec' && value && typeof value === 'object') {
-        const current = this._upperData[this._bindingName];
+        const current = upper[this._bindingName];
         if (current && typeof current === 'object') {
           // Vec 优先字段级更新，避免整对象替换和额外分配。
-          current.x = value.x;
-          current.y = value.y;
-          current.z = value.z;
+          const cur = current as Record<string, number>;
+          const val = value as Record<string, number>;
+          cur.x = val.x;
+          cur.y = val.y;
+          cur.z = val.z;
           return;
         }
       }
-      Reflect.set(this._upperData, this._bindingName, value);
+      Reflect.set(upper, this._bindingName, value);
     }
   }
 }
@@ -483,9 +510,8 @@ export class BindingData {
    * 获取绑定数据
    * @param node 有挂载 Binding 的节点
    * @param isParent 是否获取上级数据, 默认为 false
-   * @returns 
    */
-  static get<T = unknown>(node: Node, isParent = false): T {
+  static get<T = unknown>(node: Node, isParent = false): T | null {
     return Binding.Data<T>(node, isParent);
   }
 }

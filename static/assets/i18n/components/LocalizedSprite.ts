@@ -5,16 +5,17 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.1.0
+ *
  * @created 2026-03-15
- * @modified 2026-03-15
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Sprite, SpriteFrame } from "cc";
 import { EDITOR } from "cc/env";
 import { CCResources } from "../core/CCResources";
-import { LocalizedRenderer } from "../core/LocalizedRenderer";
+import { LocalizedManager } from "../core/LocalizedManager";
+import { I18nEventType } from "../core/I18nEvent";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -83,19 +84,28 @@ export class LocalizedSprite extends Component {
       this.checkEditorComponent();
       return;
     }
-
+    LocalizedManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
     this.resetValue();
   }
 
-  /** 重置值 (I18nRenderer 使用) */
+  protected onDestroy() {
+    if (EDITOR) return;
+    LocalizedManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+  }
+
+  private _onLanguageSwitched(): void {
+    this.resetValue();
+  }
+
+  /** 重置值（I18nManager 使用） */
   resetValue(): void {
     const requestVersion = ++this._resetVersion;
     const key = this._key;
-    const imagePath = LocalizedRenderer.instance.image(key);
+    const imagePath = LocalizedManager.instance.image(key);
 
-    // 编辑器模式下直接使用 LocalizedRenderer 的接口加载资源，以支持本地化预览功能
+    // 编辑器模式下直接使用 LocalizedManager 的接口加载资源，以支持本地化预览功能
     if (EDITOR) {
-      LocalizedRenderer.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
+      LocalizedManager.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
         this.setComponentValue(spriteFrame);
       });
       return;

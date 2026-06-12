@@ -5,10 +5,10 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.2.0
+ *
  * @created 2025-03-10
- * @modified 2026-03-11
+ * @modified 2026-06-09
  */
 
 /** 原始对象 */
@@ -63,15 +63,15 @@ interface ReactionFunction {
 }
 
 /** 相应依赖触发更新参数 */
-export interface ReactionOperation {
+export interface ReactionOperation<T = unknown> {
   /**
    * 操作的目标对象
    */
-  target?: any;
+  target?: T;
   /**
    * 操作类型
    */
-  type?: string;
+  type?: 'set' | 'add' | 'delete' | 'clear' | 'push' | 'pop' | 'shift' | 'unshift' | 'splice' | 'set-length';
   /**
    * 操作的属性名
    */
@@ -80,16 +80,16 @@ export interface ReactionOperation {
   /**
    * 对象变化的新值
    */
-  value?: any;
+  value?: unknown;
   /**
    * 对象变化的旧值
    */
-  oldValue?: any;
+  oldValue?: unknown;
 
   /**
    * 数组操作的插入值
    */
-  inserted?: any[];
+  inserted?: unknown[];
   /**
    * 数组操作的插入值的起始位置
    */
@@ -97,7 +97,7 @@ export interface ReactionOperation {
   /**
    * 数组操作的删除值
    */
-  deleted?: any[];
+  deleted?: unknown[];
   /**
    * 数组操作的删除值的起始位置
    */
@@ -209,6 +209,8 @@ function createReactionWrap(
     try {
       reactionStack.push(reaction);
       fn(operation);
+    } catch (error) {
+      handleReactiveError(error);
     } finally {
       reactionStack.pop();
     }
@@ -263,7 +265,7 @@ function track(target: object, key: string | symbol): void {
 
 /**
  * 触发更新
- * @param target 目标对象 
+ * @param target 目标对象
  * @param key 目标属性
  * @param operation 变化信息
  */
@@ -1165,11 +1167,31 @@ export function watchEffect(
 }
 
 /**
- * 监听特定值的变化（默认不立即执行 callback），并在变化时执行副作用函数。
- * @param source 单个 WatchSource 
- * @param callback 变化时执行的函数
+ * 监听 getter 返回值的变化（类型安全重载）
+ *
+ * @param source  getter 函数，返回值会被类型推导
+ * @param callback 变化时执行，参数为 (新值, 旧值)
+ * @param options  配置选项
+ *
+ * @example
+ * ```ts
+ * const obj = reactive({ count: 0 });
+ * watch(() => obj.count, (newVal, oldVal) => {
+ *   console.log(`count: ${oldVal} → ${newVal}`); // newVal 类型推导为 number
+ * });
+ * ```
+ */
+export function watch<T>(
+  source: () => T,
+  callback: (value: T, oldValue: T | undefined) => void,
+  options?: WatchOptions
+): WatchHandle;
+
+/**
+ * 监听单个响应式对象或 getter 的变化（兼容重载）
+ * @param source 单个 WatchSource
+ * @param callback 变化时执行，接收 ReactionOperation
  * @param options 配置选项
- * @returns WatchHandle 对象
  */
 export function watch(
   source: WatchSource,
@@ -1178,11 +1200,10 @@ export function watch(
 ): WatchHandle;
 
 /**
- * 监听特定值的变化（默认不立即执行 callback），并在变化时执行副作用函数。
+ * 监听多个 WatchSource 数组的变化
  * @param source 多个 WatchSource 组成的数组
- * @param callback 变化时执行的函数
+ * @param callback 变化时执行，接收 ReactionOperation
  * @param options 配置选项
- * @returns WatchHandle 对象
  */
 export function watch(
   source: WatchSource[],
@@ -1199,7 +1220,7 @@ export function watch(
  */
 export function watch(
   source: WatchSource | WatchSource[],
-  callback: WatchCallback,
+  callback: WatchCallback | ((value: unknown, oldValue: unknown) => void),
   options: WatchOptions = {}
 ): WatchHandle {
   const { immediate = false, flush = 'sync' } = options;
@@ -1213,6 +1234,12 @@ export function watch(
   const isMultiSource = isArray && !isProxyArray;
   const sources = isMultiSource ? source : [source];
 
+  // 检测是否为类型安全的 getter 重载（callback 有两个参数）
+  const isTypedGetterCallback = !isMultiSource
+    && typeof callback === 'function'
+    && callback.length === 2
+    && typeof sources[0] === 'function';
+
   // 检查所有源的类型
   for (const src of sources) {
     const isReactiveObject = typeof src === 'object' && src !== null && (isReactive(src) || isReadonly(src));
@@ -1221,6 +1248,9 @@ export function watch(
       throw new Error('watch source must be a getter function or a reactive object');
     }
   }
+
+  // 类型安全重载：存储上轮值，触发时回调 (newVal, oldVal)
+  let _prevValue: unknown;
 
   let reactionWrap: ReactionFunction;
   const scheduler = flush === 'post'
@@ -1231,33 +1261,31 @@ export function watch(
     const originalShouldTrack = shouldTrack;
     shouldTrack = true;
 
+    let getterResult: unknown;
+
     // 遍历所有源，建立依赖
     for (const src of sources) {
       if (typeof src === 'function') {
         // 执行 getter 函数
-        (src as Function)();
+        getterResult = (src as Function)();
       } else if (isReactive(src) || isReadonly(src)) {
         // 处理响应式对象
         const reactiveObj = src as any;
         if (Array.isArray(reactiveObj)) {
-          // 数组：访问 length 和所有索引
           reactiveObj.length;
           for (let i = 0; i < reactiveObj.length; i++) {
             reactiveObj[i];
           }
         } else if (reactiveObj instanceof Map || reactiveObj instanceof Set) {
           if (reactiveObj instanceof Map) {
-            // Map：访问 size、结构迭代和每个 key 的值，确保 set(existingKey) 也能触发。
             reactiveObj.size;
             for (const [key] of reactiveObj.entries()) {
               reactiveObj.get(key);
             }
           } else {
-            // Set：访问 size
             reactiveObj.size;
           }
         } else {
-          // 普通对象：访问所有可枚举属性
           for (const key in reactiveObj) {
             if (Object.prototype.hasOwnProperty.call(reactiveObj, key)) {
               reactiveObj[key];
@@ -1270,7 +1298,16 @@ export function watch(
     shouldTrack = false;
     try {
       if (!isFirstRun || immediate) {
-        callback(operation);
+        if (isTypedGetterCallback) {
+          // 类型安全模式：回调 (newValue, oldValue)
+          (callback as (v: unknown, o: unknown) => void)(getterResult, _prevValue);
+        } else {
+          (callback as WatchCallback)(operation);
+        }
+      }
+      // 记录本次值作为下次的旧值
+      if (isTypedGetterCallback) {
+        _prevValue = getterResult;
       }
     } finally {
       isFirstRun = false;
@@ -1278,7 +1315,10 @@ export function watch(
     }
   }, scheduler);
 
-  // 建立依赖关系
+  // 建立依赖关系（会执行一次 getter 拿到初始值）
+  if (isTypedGetterCallback && typeof sources[0] === 'function') {
+    _prevValue = (sources[0] as Function)();
+  }
   reactionWrap();
 
   const stop = () => {

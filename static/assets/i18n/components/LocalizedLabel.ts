@@ -5,16 +5,17 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
- * 
+ * @version v1.1.0
+ *
  * @created 2026-03-15
- * @modified 2026-03-15
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, Label, RichText, EditBox, CCString } from "cc";
 import { EDITOR } from "cc/env";
-import { LocalizedRenderer } from "../core/LocalizedRenderer";
-import { LocalizedLabelMode } from "../core/ILocalizedRenderer";
+import { LocalizedManager } from "../core/LocalizedManager";
+import { LocalizedLabelMode } from "../core/ILocalizedManager";
+import { I18nEventType } from "../core/I18nEvent";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -106,18 +107,17 @@ export class LocalizedLabel extends Component {
       this.checkEditorComponent();
       return;
     }
-
+    LocalizedManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
     this.resetValue();
   }
 
-  private _language: string = "";
-  protected onEnable() {
+  protected onDestroy() {
     if (EDITOR) return;
+    LocalizedManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+  }
 
-    if (this._language != LocalizedRenderer.instance.language) {
-      this._language = LocalizedRenderer.instance.language;
-      this.resetValue();
-    }
+  private _onLanguageSwitched(): void {
+    this.resetValue();
   }
 
   /**
@@ -129,13 +129,13 @@ export class LocalizedLabel extends Component {
     this.resetValue();
   }
 
-  /** 重置值（I18nRenderer 使用） */
+  /** 重置值（I18nManager 使用） */
   resetValue(): void {
     const key = this._key;
-    const model = LocalizedRenderer.instance.labelModel;
+    const model = LocalizedManager.instance.labelModel;
     switch (model) {
       case LocalizedLabelMode.DATA:
-        this.setComponentValue(LocalizedRenderer.instance.text(key, this._args));
+        this.setComponentValue(LocalizedManager.instance.text(key, this._args));
         break;
       case LocalizedLabelMode.PATH:
         this.setComponentValue(key);

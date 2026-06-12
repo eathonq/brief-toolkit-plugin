@@ -1,188 +1,461 @@
 # MVVM 框架
 
-> Cocos Creator 3.8.8 的轻量级 MVVM 数据绑定模块。
+> Cocos Creator 3.8.8 的生产级 MVVM 数据绑定框架。
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | `v1.0.0` |
+| 版本 | `v1.2.0` |
 | Cocos 版本 | `v3.8.8` |
 
-## 简介
-MVVM 框架是基于 Cocos Creator 引擎开发的一个轻量级的前端架构，
-旨在简化数据与视图的绑定过程，提高开发效率。
-通过使用 MVVM 框架，开发者可以更专注于业务逻辑的实现，而无需过多关注视图的更新和数据的同步。
+---
 
-## 核心能力
-- 视图与数据双向绑定
-- 集合数据驱动的列表渲染
-- 响应式数据更新机制
+## 1. 两层入口
 
-## 框架类设计（按当前实现）
-
-### 组件层继承关系
-
-```text
-Component
-└─ DataContext
-	├─ ViewModel
-	└─ ItemsSource
-
-CCElement
-└─ Binding
-```
-
-### 核心类职责
-
-| 类 | 角色 | 关键职责 |
+| 入口 | 用途 | 依赖 |
 | --- | --- | --- |
-| `ViewModel` | 页面根数据上下文 | 创建并持有 `@vm` 声明的视图模型实例，包装为 `reactive`，转发 `onLoaded/onUpdate/onDestroy` 生命周期。 |
-| `DataContext` | 对象型上下文桥接 | 从上级上下文取对象字段并注册更新回调；维护父子上下文注册关系。 |
-| `ItemsSource` | 集合型上下文桥接 | 监听数组变更并驱动模板节点增删；支持可选“选中项”双向回写。 |
-| `Binding` | 组件属性绑定器 | 连接 UI 组件属性与数据字段，支持 `TwoWay/OneWay/OneTime/OneWayToSource`。 |
-| `CCElement` | UI 元素适配层 | 识别 Cocos 组件可绑定属性，统一读写与事件监听能力。 |
-| `Decorator` + `DecoratorData` | 元数据系统 | 管理 `@vm/@model/@prop/@func` 元数据，供编辑器枚举和运行时实例化使用。 |
-| `Reactive` | 响应式内核 | 提供代理、依赖追踪、侦听调度、批处理与只读/浅层模式。 |
-| `CCResources` | 资源辅助 | 统一资源路径解析、bundle 与远程资源加载、SpriteFrame 设置。 |
+| `pure.ts` | 单元测试、Node.js 脚本 | **零 `cc` 导入** |
+| `index.ts` | Cocos 项目运行时代码 | 完整 Cocos 组件 + pure.ts 全部 API |
 
-### 运行时数据流
+---
 
-1. `ViewModel` 在根节点创建视图模型实例并转为响应式对象。
-2. 子节点 `DataContext` / `ItemsSource` 通过注册机制拿到上级上下文数据。
-3. `Binding` 绑定到具体字段或方法，建立 UI <-/-> 数据联动。
-4. `Reactive` 在属性变化时触发侦听，驱动上下文和界面刷新。
+## 2. 架构
 
-## 目录结构
-```shell
-├── mvvm
-│   ├── components
-│   │   ├── Binding.ts            # 基础组件与基础数据类型的绑定组件
-│   │   ├── DataContext.ts        # Node节点与对象类型数据绑定组件
-│   │   ├── ItemsSource.ts        # Node节点与集合数据绑定组件
-│   │   └── ViewModel.ts          # 视图模型组件
-│   ├── core
-│   │   ├── CCElement.ts          # 识别组件元素，并提供设置值和监听值变化的功能
-│   │   ├── CCResources.ts        # 资源加载工具
-│   │   ├── Decorator.ts          # 装饰器
-│   │   ├── DecoratorData.ts      # 装饰器类数据信息
-│   │   └── Reactive.ts           # 一个类似 Vue 的响应式系统实现
-│   ├── index.ts                  # MVVM 框架入口
-│   └── pure.ts                   # 纯 TS 装饰器入口（不依赖 Cocos 组件导出）
-├── others
+### 2.1 组件继承链
+
+```
+Cocos Component
+├── CCElement ────── Binding
+└── DataContext
+    ├── ViewModel
+    └── ItemsSource
 ```
 
-## 快速开始
-1. 导入 `brief-toolkit` 资源到项目中。
-2. 在页面上层节点挂载 `ViewModel`。
-3. 在页面子节点上使用 `Binding` 或 `DataContext` 或 `ItemsSource` 完成界面绑定。
+### 2.2 纯 TS 层（零 cc 依赖）
 
-## 最小可运行示例
+```
+BaseViewModel  ← ViewModel 生命周期基类
+MessageBus     ← 发布/订阅（全局 + 实例级）
+Reactive       ← 响应式内核（Proxy 依赖追踪）
+DecoratorData  ← 装饰器元数据注册表
+ErrorBoundary  ← 异常捕获隔离
+MvvmNodePool   ← 节点对象池
+mvvmType       ← TypeScript 类型工具
+```
 
-### 1) 定义 ViewModel（TypeScript）
+### 2.3 核心类一览
+
+| 类 | 层 | 职责 |
+| --- | --- | --- |
+| `ViewModel` | Cocos 组件 | 页面根节点，创建 VM 实例 + reactive 包装 + 注入 MessageBus + 管理完整生命周期 |
+| `DataContext` | Cocos 组件 | 嵌套数据上下文，从上级取对象字段，暴露给下级 Binding/DataContext |
+| `ItemsSource` | Cocos 组件 | 数组 → 模板节点列表，监听 push/pop/splice 增量更新，支持模板选择器 |
+| `Binding` | Cocos 组件 | 连接 UI 组件属性 ↔ 数据字段，支持 4 种绑定模式 |
+| `CCElement` | Cocos 组件 | UI 组件适配：识别 Label/EditBox/Sprite 等，统一套读写 + 事件监听 |
+| `BaseViewModel` | 纯 TS | 9 个生命周期钩子（onCreate → onDestroy） |
+| `MessageBus` | 纯 TS | 全局静态发布/订阅，ViewModel 间解耦通信的唯一通道 |
+| `Reactive` | 纯 TS | Vue3 风格响应式：reactive/watch/computed/batch |
+| `ErrorBoundary` | 纯 TS | try-catch 包裹器，绑定/回调异常不影响其他链路 |
+| `MvvmNodePool` | Cocos | 基于 NodePool 封装，按模板分组缓存，出入池时自动调 suspend/resume |
+
+### 2.4 运行时数据流
+
+```
+ViewModel.onUpdateData()
+  → decoratorData.createInstance(name)    // 字符串名 → new
+  → vm.onCreate()                         // reactive 包装前
+  → reactive(vm)                          // 设为响应式
+  → _bindEventDecorators()                // 自动订阅 @event
+  → scheduleOnce → vm.onLoaded()          // 下一帧，UI 绑定就绪
+
+Binding.onLoad()
+  → DataContext.lookUp(node)              // 沿树向上找父 DataContext
+  → parent.register(this, onUpdateData)   // 注册回调
+  → _applyBindingMode()                   // TwoWay/OneWay/...
+  → onUpdateData()                        // 读数据 + 设 watch
+
+数据变更(View -> Model) → trigger → watch 回调 → 驱动 Binding.setElementValue → UI 更新
+UI 交互(Model -> View)  → onElementValueChange → Reflect.set → trigger → 数据更新
+```
+
+---
+
+## 3. 目录结构
+
+```
+mvvm/
+├── components/
+│   ├── Binding.ts               # UI 属性 ↔ 数据字段
+│   ├── DataContext.ts           # 对象型嵌套上下文
+│   ├── ItemsSource.ts           # 数组 → 模板列表 + 对象池 + 模板选择器
+│   └── ViewModel.ts             # 根节点 VM 容器
+│
+├── core/
+│   ├── BaseViewModel.ts         # VM 生命周期基类
+│   ├── CCElement.ts             # UI 组件适配层
+│   ├── CCResources.ts           # 资源加载（bundle/远程/SpriteFrame）
+│   ├── Decorator.ts             # @vm/@model/@prop/@func/@event
+│   ├── DecoratorData.ts         # 装饰器元数据注册表
+│   ├── ErrorBoundary.ts         # try-catch 隔离
+│   ├── MessageBus.ts            # 发布/订阅
+│   ├── NodePool.ts              # 对象池 + IPoolable 接口
+│   ├── Reactive.ts              # 响应式内核
+│   └── mvvmType.ts              # 类型工具（ViewModelOf / PropType / BindingKeys）
+│
+├── index.ts                     # Cocos 运行时入口
+└── pure.ts                      # 纯 TS 入口（零 cc 依赖）
+```
+
+---
+
+## 4. 快速开始
+
+### 4.1 定义 ViewModel
 
 ```ts
-import * as mvvm from "../../brief-toolkit/mvvm/pure";
+import * as mvvm from '../../brief-toolkit/mvvm/pure';
+const { vm, prop, func, event } = mvvm._decorator;
 
-const { vm, prop, func } = mvvm._decorator;
+@vm('HelloVM')
+class HelloVM extends mvvm.BaseViewModel {
+  @prop        title = 'Hello';
+  @prop(Number) count = 0;
 
-@vm("HelloViewModel")
-export class HelloViewModel implements mvvm.IViewModel {
-	@prop
-	title = "Hello MVVM";
+  // 响应其他 VM 的事件
+  @event('score-changed')
+  onScoreChanged(score: number) {
+    this.count += score;
+  }
 
-	@prop(Number)
-	count = 0;
+  onLoaded(): void {
+    // 数据绑定就绪后执行
+  }
 
-	onLoaded(): void {
-		mvvm.watchEffect(() => {
-			// 示例：可在这里做派生状态计算或调试输出
-			const _debug = `${this.title}: ${this.count}`;
-			void _debug;
-		});
-	}
-
-	@func
-	onClickAdd() {
-		this.count += 1;
-		this.title = `Hello MVVM (${this.count})`;
-	}
+  @func
+  onClick() {
+    this.count++;
+    this.title = `Clicked ${this.count}`;
+  }
 }
 ```
 
-### 2) 场景挂载（Editor）
+### 4.2 场景挂载
 
-1. 在页面根节点挂载 `mvvm.ViewModel`，`viewModel` 选择 `HelloViewModel`。
-2. 在显示文本的 `Label` 节点挂载 `mvvm.Binding`：
-	 - `DataContext` 指向根节点 `ViewModel`
-	 - `mode` 选择 `OneWay`
-	 - `binding` 选择 `title`
-3. 在按钮节点挂载 `mvvm.Binding`（或按钮子节点）触发方法：
-	 - `DataContext` 指向根节点 `ViewModel`
-	 - `mode` 选择 `OneWayToSource`
-	 - `binding` 选择 `onClickAdd`
+1. 根节点挂 `ViewModel`，viewModel 下拉选 `HelloVM`
+2. Label 节点挂 `Binding`：`mode=OneWay`，`binding=title`
+3. Button 节点挂 `Binding`：`mode=OneWayToSource`，`binding=onClick`
 
-### 3) 列表扩展示例（可选）
+### 4.3 列表（ItemsSource）
 
-- 根节点 `ViewModel` 提供数组字段（如 `@prop([ItemModel]) list`）。
-- 列表容器挂载 `mvvm.ItemsSource`，绑定到 `list`，并设置 `template`。
-- 模板子节点继续挂载 `mvvm.Binding` / `mvvm.DataContext` 访问每一项数据。
+1. ViewModel 加 `@prop([Item]) list`
+2. 列表容器挂 `ItemsSource`，`binding=list`，`templates=[模板节点]`
+3. 模板子节点挂 `Binding` 访问 item 属性
 
-## 组件绑定推荐配置
+---
 
-下表按当前实现的 `CCElement` + `Binding` 规则整理，优先使用“推荐 mode”。
+## 5. ViewModel 与生命周期
 
-| 元素 | Property | 数据类型 | 推荐 mode | 说明 |
-| --- | --- | --- | --- | --- |
-| `Label` / `RichText` | `string` | `String/Number/Boolean` | `OneWay` | 文本展示一般是模型驱动视图。 |
-| `EditBox` | `string` | `String/Number/Boolean` | `TwoWay` | 输入框常用双向绑定。 |
-| `Toggle` | `isChecked` | `Boolean` | `TwoWay` | 适合开关状态双向同步。 |
-| `Slider` | `progress` | `Number` | `TwoWay` | 滑动条与数值通常双向联动。 |
-| `ProgressBar` | `progress` | `Number` | `OneWay` | 进度展示通常只读。 |
-| `PageView` | `currentPageIndex` | `Number` | `TwoWay` | 页码可由逻辑或交互共同驱动。 |
-| `Sprite` | `spriteFrame` | `String` | `OneWay` | 字符串路径映射资源。 |
-| `ToggleContainer` | `checkedIndex` | `Number` | `TwoWay` | 常与索引状态双向同步。 |
-| `Button` | `click` | `Function` | `OneWayToSource` | 按钮只做事件上行。 |
-| `Node` | `active` | `Boolean/Number/String/Object` | `TwoWay` | 支持显隐双向；展示场景也可用 `OneWay`。 |
-| `Node` | `position` | `Vec` | `TwoWay` | 位置联动交互场景可双向。 |
-| `Node` | `touch-start/move/end` | `Function` | `OneWayToSource` | 触摸事件回调上行到 ViewModel。 |
+### 5.1 BaseViewModel（纯 TS 抽象类）
 
-## 常见注意事项
+| 钩子 | 调用时机 |
+| --- | --- |
+| `onCreate()` | 构造后、reactive 包装前 |
+| `onLoaded()` | 首帧渲染前、数据绑定就绪 |
+| `onEnable()` | 节点 activeInHierarchy 变为 true |
+| `onDisable()` | 节点 activeInHierarchy 变为 false |
+| `onUpdate(dt)` | 每帧 |
+| `onDestroy()` | 销毁前 |
+| `onAppShow()` | 应用回前台 |
+| `onAppHide()` | 应用进后台 |
+| `onError(e)` | VM 内部异常 |
 
-1. `Binding` 会根据所选元素和属性动态收敛可选 `mode`，若看不到某个 mode，通常是该元素属性不支持。
-2. `ItemsSource` 的 `template` 节点会在运行时作为克隆模板移出内容节点，模板本体不会直接显示。
-3. 如果 `DataContext` / `ItemsSource` 在编辑器下提示“找不到上级 DataContext”，优先检查节点层级和挂载顺序。
-4. 方法绑定（`Function`）建议统一使用 `OneWayToSource`，避免把事件型字段误配置成值同步模式。
+### 5.2 ViewModel 组件
 
-## 入口导出
+| 属性 | 说明 |
+| --- | --- |
+| `viewModel` | 下拉选择已注册的 VM 类 |
+| 全局 VM | `@vm('Name', true)` → 单例，所有场景共享同一实例 |
 
-- `index.ts`：导出 `ViewModelData`、`BindingData`、`DataContextData`、`ItemsSourceData`，并转导出 `pure.ts` 的 API。
-- `pure.ts`：导出装饰器与响应式 API（可用于纯 TS 场景，不依赖 Cocos 组件导出）。
+### 5.3 静态查找 API（ViewModelData）
 
-## Reactive API
+```ts
+ViewModelData.getFirstTarget<MyVM>('MyVM');
+ViewModelData.getTargetByNode<MyVM>('MyVM', someNode);
+ViewModelData.getNodes(vmInstance);
+ViewModelData.getStats(); // { names, targets, nodes }
+```
 
-### 代理模式矩阵
+---
 
-| API | 顶层可写 | 深层可写 | 深层自动代理 |
-| --- | --- | --- | --- |
-| `reactive` | 是 | 是 | 是 |
-| `shallowReactive` | 是 | 是（原始对象） | 否 |
-| `readonly` | 否 | 否 | 是（深层 readonly） |
-| `shallowReadonly` | 否 | 是（原始对象） | 否 |
+## 6. 消息总线（MessageBus）
 
-### 常用函数
+### 6.1 使用方式
 
-- 状态创建：`reactive` / `shallowReactive` / `readonly` / `shallowReadonly`
-- 状态判断：`isReactive` / `isReadonly` / `isProxy`
-- 原始对象：`toRaw`
-- 派生状态：`computed`
-- 侦听：`watchEffect` / `watch`（支持 `flush: 'sync' | 'post'`）
-- 批处理：`batch`
-- 错误处理：`setReactiveErrorHandler`（处理 `flush: 'post'` 的异步回调错误）
+```ts
+// 发送 / 订阅
+MessageBus.emit('score-changed', 100);
+const token = MessageBus.on('score-changed', (score) => this.show(score));
 
-### 调度说明
+// onDestroy 时用令牌解绑
+MessageBus.offByToken(token);
 
-- `watchEffect` 和 `watch` 默认 `flush: 'sync'`。
-- 设置 `flush: 'post'` 后，会在微任务中合并同一轮同步更新。
-- `computed` 采用惰性求值，仅在读取 `.value` 时重新计算。
+// @event 装饰器 — 声明式订阅（框架自动管理绑定/解绑）
+@vm('ListVM')
+class ListVM extends BaseViewModel {
+  @event('item-deleted')
+  onItemDeleted(id: number) { }
+}
+```
+
+### 6.2 API
+
+| 方法 | 说明 |
+| --- | --- |
+| `emit(name, payload?)` | 发送事件 |
+| `on(name, callback)` | 订阅，返回 SubscriptionToken |
+| `once(name, callback)` | 一次性订阅 |
+| `off(name, callback)` | 取消订阅 |
+| `offByToken(token)` | 令牌取消 |
+| `clear(name?)` | 清空事件/全部 |
+
+---
+
+## 7. 响应式（Reactive）
+
+### 7.1 API
+
+| 函数 | 说明 |
+| --- | --- |
+| `reactive(obj)` | 深层响应式代理 |
+| `shallowReactive(obj)` | 仅顶层响应式 |
+| `readonly(obj)` | 深层只读代理 |
+| `shallowReadonly(obj)` | 仅顶层只读 |
+| `isReactive / isReadonly / isProxy` | 类型判断 |
+| `toRaw(proxy)` | 获取原始对象 |
+| `computed(getter)` | 惰性求值派生状态 |
+| `watchEffect(fn, opts?)` | 立即执行 + 自动追踪依赖 |
+| `watch(source, cb, opts?)` | 监听特定值变化 |
+| `batch(fn)` | 批量更新（合并触发） |
+| `setReactiveErrorHandler(fn)` | 设置异步回调错误处理 |
+
+### 7.2 选项
+
+| 选项 | 值 | 说明 |
+| --- | --- | --- |
+| `flush` | `'sync'`（默认） | 同步触发回调 |
+| | `'post'` | 微任务合并，同一轮同步变更只触发一次 |
+| `immediate` | `false`（默认） | 仅变更时触发 |
+| | `true` | 立即执行一次 |
+
+### 7.3 数组变更信息（ReactionOperation）
+
+```ts
+interface ReactionOperation<T = unknown> {
+  target?: T;
+  type?: 'set' | 'add' | 'delete' | 'push' | 'pop' | 'shift' | 'unshift' | 'splice' | 'set-length';
+  property?: string | symbol;
+  value?: unknown;
+  oldValue?: unknown;
+  inserted?: unknown[];    // 数组插入的值
+  insertedStart?: number;  // 插入起始位置
+  deleted?: unknown[];     // 数组删除的值
+  deletedStart?: number;   // 删除起始位置
+}
+```
+
+### 7.4 类型安全的 watch
+
+```ts
+const obj = reactive({ count: 0 });
+
+// newVal / oldVal 类型自动推导
+watch(() => obj.count, (newVal, oldVal) => {
+  // newVal: number, oldVal: number | undefined
+});
+```
+
+---
+
+## 8. 装饰器
+
+```ts
+const { vm, model, prop, func, event } = mvvm._decorator;
+```
+
+| 装饰器 | 用途 | 示例 |
+| --- | --- | --- |
+| `@vm(name, global?)` | 注册 ViewModel 类 | `@vm('MyVM')` |
+| `@model(name)` | 注册 Model 类 | `@model('Item')` |
+| `@prop` | 属性（从默认值推导类型） | `@prop title = ''` |
+| `@prop(Type)` | 属性（显式类型） | `@prop(String)` / `@prop(Number)` / `@prop([ItemModel])` |
+| `@func` | 方法（供 Binding OneWayToSource） | `@func onClick()` |
+| `@event(name)` | 声明式事件订阅 | `@event('score-changed')` |
+| `SetEditor(data)` | 编辑器预览默认值 | `SetEditor(new MyVM())` |
+
+装饰器由 TypeScript 实验性装饰器支持（`experimentalDecorators: true`）。
+
+---
+
+## 9. Binding
+
+### 9.1 绑定模式
+
+| 模式 | 方向 | 适用 |
+| --- | --- | --- |
+| `TwoWay` | Model ↔ View | EditBox、Toggle、Slider |
+| `OneWay` | Model → View | Label、Sprite、ProgressBar |
+| `OneTime` | Model → View（仅首次） | 静态标题、不变图片 |
+| `OneWayToSource` | View → Model | Button.click、触摸事件 |
+
+编辑器会根据所选 Element 和 Property 动态收敛可选的 mode。
+
+### 9.2 CCElement 支持的元素
+
+| 元素 | 可绑定属性 | 数据类型 |
+| --- | --- | --- |
+| `Label` | `string` | String / Number / Boolean |
+| `RichText` | `string` | String / Number / Boolean |
+| `EditBox` | `string` | String / Number / Boolean |
+| `Toggle` | `isChecked` | Boolean |
+| `Button` | `click` | Function |
+| `Slider` | `progress` | Number |
+| `ProgressBar`| `progress` | Number |
+| `PageView` | `currentPageIndex` | Number |
+| `Sprite` | `spriteFrame` | String（路径） |
+| `ToggleContainer`| `checkedIndex` | Number |
+| `Node` | `active` | Boolean / Number / String / Object |
+| `Node` | `position` | Vec |
+| `Node` | `touch-start/move/end` | Function |
+
+### 9.3 静态访问 API
+
+```ts
+BindingData.get<MyVM>(node);          // 获取绑定数据
+BindingData.get<MyVM>(node, true);    // 获取上级上下文
+DataContextData.get<MyVM>(node);      // 获取 DataContext 数据
+ItemsSourceData.get<Item[]>(node);    // 获取 ItemsSource 数组
+```
+
+---
+
+## 10. ItemsSource（列表渲染）
+
+### 10.1 核心机制
+
+- 监听数组 `length` 变化（push/pop/splice/shift/unshift）
+- 增量更新：`inserted/deleted` 精准增删节点
+- 节点来自 `MvvmNodePool`（对象池），非 destroy
+- 模板支持多选（模板选择器）
+
+### 10.2 属性
+
+| 属性 | 说明 |
+| --- | --- |
+| `templates` | 模板节点数组 |
+| `templateField` | 数据字段名（item[field] → templates[n]），空则用 templates[0] |
+| `isSelected` | 启用选中项双向绑定 |
+| `bindingSelected` | 绑定选中项到哪个属性 |
+
+### 10.3 模板选择器
+
+```ts
+// ViewModel 中
+@model('ChatItem')
+class ChatItem {
+  @prop templateId = 0;  // 0=文本气泡, 1=图片气泡, 2=系统消息
+  @prop sender = '';
+  @prop content = '';
+}
+
+// 编辑器中 ItemsSource 配置
+templates: [TextBubble预制, ImageBubble预制, SystemMsg预制]
+templateField: 'templateId'
+```
+
+### 10.4 对象池
+
+`MvvmNodePool` 自动处理节点复用，无需用户配置：
+
+- `addItem` → 优先从池取，无则 `instantiate`
+- `deleteItemByIndex` → 回池而非 `destroy`
+- 回池前自动 `suspend()`（停 watch + 解注册 + 清事件）
+- 出池后自动 `resume()`（重建上下文 + 重设监听）
+
+---
+
+## 11. 错误边界
+
+```ts
+// 包裹无参函数
+ErrorBoundary.wrap(() => this.riskyOperation(), this, 'context');
+
+// 包裹回调
+const safeCb = ErrorBoundary.wrapCallback(callback, this, 'watch:title');
+
+// 直接执行
+ErrorBoundary.tryRun(() => fn(), this, 'onUpdate');
+```
+
+异常处理链：`ErrorBoundary` → `BaseViewModel.onError()` → 全局 `reactiveErrorHandler`（通过 `setReactiveErrorHandler` 设置）。
+
+---
+
+## 12. 类型工具（pure.ts only）
+
+```ts
+import type { ViewModelOf, PropType, BindingKeys } from '.../mvvm';
+
+class MyVM extends BaseViewModel {
+  @prop title = '';
+  @prop count = 0;
+  @func onClick() { }
+}
+
+type VM = ViewModelOf<typeof MyVM>;  // MyVM
+type T  = PropType<VM, 'title'>;     // string
+type B  = BindingKeys<VM>;           // 'title' | 'count'
+```
+
+---
+
+## 13. IPoolable 接口
+
+`DataContext`、`Binding`、`CCElement` 均实现此接口，配合 `MvvmNodePool`：
+
+```ts
+interface IPoolable {
+  suspend(): void;  // 入池前：停 watch + 解注册 + 清事件
+  resume(): void;   // 出池后：重建上下文 + 重设监听
+}
+```
+
+---
+
+## 14. 入口 API 对照
+
+| API | pure.ts | index.ts |
+| --- | :---: | :---: |
+| `reactive` / `watch` / `watchEffect` / `computed` / `batch` | ✅ | ✅ |
+| `BaseViewModel` | ✅ | ✅ |
+| `MessageBus` / `MessageBus.global()` | ✅ | ✅ |
+| `_decorator`（@vm/@prop/@func/@event） | ✅ | ✅ |
+| `ErrorBoundary` | ✅ | ✅ |
+| 类型工具（ViewModelOf 等） | ✅ | ✅ |
+| `ViewModelData` / `BindingData` / `DataContextData` / `ItemsSourceData` | ❌ | ✅ |
+| `MvvmNodePool` / `IPoolable` | ❌ | ✅ |
+
+---
+
+## 15. 常见注意事项
+
+1. `Binding` 根据元素和属性动态收敛可选 `mode`，看不到某个 mode 说明该元素不支持
+2. `ItemsSource` 的 `templates` 在运行时移出场景树并隐藏，模板本体不会直接显示
+3. `DataContext`/`ItemsSource` 提示"找不到上级 DataContext"，检查节点层级和挂载顺序
+4. 方法绑定统一使用 `OneWayToSource`
+5. `@prop` 无参时必须设默认值（用于运行时类型推导）
+6. pure.ts 不导出任何 Cocos 组件，可安全用于单元测试
+
+---
 
 ## 📄 协议
+
 MIT License
