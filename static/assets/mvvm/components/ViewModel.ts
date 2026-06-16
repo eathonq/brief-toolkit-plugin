@@ -18,7 +18,7 @@ import { reactive } from "../core/Reactive";
 import { DataContext } from "./DataContext";
 import { decoratorData } from "../core/DecoratorData";
 import { BaseViewModel } from "../core/BaseViewModel";
-import { MessageBus, SubscriptionToken } from "../core/MessageBus";
+import { EventBus, SubscriptionToken } from "../core/EventBus";
 import { ErrorBoundary } from "../core/ErrorBoundary";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
@@ -149,7 +149,7 @@ export class ViewModel extends DataContext {
     // 注册到全局表
     ViewModelData.register(this._data as object, this._viewModelName, this.node);
 
-    // 自动订阅 @event 装饰的方法（走全局 MessageBus）
+    // 自动订阅 @event 装饰的方法（走框架内部 EventBus）
     this._bindEventDecorators(vm);
 
     // 节点显隐 → onEnable / onDisable
@@ -175,7 +175,7 @@ export class ViewModel extends DataContext {
     if (vm) {
       // 解绑 @event
       for (const token of this._eventTokens) {
-        MessageBus.offByToken(token);
+        EventBus.offByToken(token);
       }
       this._eventTokens.length = 0;
 
@@ -234,7 +234,7 @@ export class ViewModel extends DataContext {
       const handler = (vm as unknown as Record<string, unknown>)[evt.handler];
       if (typeof handler === 'function') {
         const boundHandler = (handler as Function).bind(vm);
-        const token = MessageBus.on(evt.name, (payload: unknown) => {
+        const token = EventBus.on(evt.name, (payload: unknown) => {
           ErrorBoundary.tryRun(() => boundHandler(payload), vm, `@event:${evt.name}`);
         });
         this._eventTokens.push(token);

@@ -201,7 +201,6 @@ static showView(name, data): void {
 
 ### 事件驱动刷新
 
-- **i18n**：`LANGUAGE_SWITCHED` 事件 → 所有 `LocalizedLabel/Sprite` 自动刷新
 - **Skin**：状态变更 → 遍历活跃 `SkinSprite` 集合精确刷新，O(活跃数)
 - **ViewEvent**：基于 `ViewState`（Show/Hide/Close/Data）驱动视图生命周期
 

@@ -12,14 +12,14 @@
  * @note ViewModel 中请使用 pure.ts 入口，该入口零 Cocos 依赖、永不崩溃。
  */
 
-// 组件（含别名）
-export { LocalizedManager as I18nManager } from "./core/LocalizedManager";
-export { LocalizedSetting as I18nSetting } from "./components/LocalizedSetting";
-export { LocalizedLabel as I18nLabel } from "./components/LocalizedLabel";
-export { LocalizedSprite as I18nSprite } from "./components/LocalizedSprite";
+// 组件
+export { I18nManager } from "./core/I18nManager";
+export { I18nSetting } from "./components/I18nSetting";
+export { I18nLabel } from "./components/I18nLabel";
+export { I18nSprite } from "./components/I18nSprite";
 
 // 枚举
-export { LocalizedLabelMode } from "./core/ILocalizedManager";
+export { I18nLabelMode } from "./core/II18nManager";
 export { I18nEventType } from "./core/I18nEvent";
 
 // 事件载荷类型
@@ -33,7 +33,7 @@ export type {
 export { DateFormatter } from "./core/DateFormatter";
 
 // 数据类型
-export type { LanguageMeta } from "./core/LocalizedManager";
+export type { LanguageMeta } from "./core/I18nManager";
 
 // 静态门面
 export { I18n } from "./core/I18n";

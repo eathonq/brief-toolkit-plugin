@@ -41,10 +41,6 @@ export {
 // ──────────── ViewModel 基类 ────────────
 export { BaseViewModel } from './core/BaseViewModel';
 
-// ──────────── 消息总线 ────────────
-export { MessageBus } from './core/MessageBus';
-export type { SubscriptionToken, MessageCallback } from './core/MessageBus';
-
 // ──────────── 错误边界 ────────────
 export { ErrorBoundary } from './core/ErrorBoundary';
 export type { GlobalErrorHandler } from './core/ErrorBoundary';

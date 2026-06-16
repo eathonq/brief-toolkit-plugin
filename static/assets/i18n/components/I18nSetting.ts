@@ -1,8 +1,8 @@
 /**
- * LocalizedSetting.ts - 多语言配置组件（可选）
+ * I18nSetting.ts - 多语言配置组件（可选）
  * @description 可选的编辑器便利组件，用于在场景节点上配置默认语言和资源路径。
- *              运行时也可以通过代码直接操作 LocalizedManager.instance。
- * @important LocalizedManager 已是全局单例且自举绑定 I18n，无需依赖此组件即可工作。
+ *              运行时也可以通过代码直接操作 I18nManager.instance。
+ * @important I18nManager 已是全局单例且自举绑定 I18n，无需依赖此组件即可工作。
  *
  * @author eathonq
  * @license MIT
@@ -14,21 +14,21 @@
 
 import { _decorator, Component, Enum, JsonAsset } from 'cc';
 import { EDITOR } from 'cc/env';
-import { LocalizedManager } from '../core/LocalizedManager';
-import { LocalizedLabelMode } from '../core/ILocalizedManager';
+import { I18nManager } from '../core/I18nManager';
+import { I18nLabelMode } from '../core/II18nManager';
 const { ccclass, property, executeInEditMode, menu } = _decorator;
 
 const I18N_ASSET_PATH = "i18n";
 
 /**
- * [i18n-LocalizedSetting]
+ * [i18n-I18nSetting]
  * i18n 多语言配置组件（可选）
- * EDITOR 模式下，修改 defaultAsset 和 assetPath 会直接影响 LocalizedManager 的对应属性。
+ * EDITOR 模式下，修改 defaultAsset 和 assetPath 会直接影响 I18nManager 的对应属性。
  */
-@ccclass('i18n.LocalizedSetting')
+@ccclass('i18n.I18nSetting')
 @executeInEditMode
-@menu('BriefToolkit/I18n/LocalizedSetting')
-export class LocalizedSetting extends Component {
+@menu('BriefToolkit/I18n/I18nSetting')
+export class I18nSetting extends Component {
   // 默认语言资源
   @property(JsonAsset)
   private _defaultAsset: JsonAsset = null;
@@ -42,15 +42,15 @@ export class LocalizedSetting extends Component {
   set defaultAsset(value) {
     this._defaultAsset = value;
     if (EDITOR) {
-      LocalizedManager.instance.languageAsset = value;
+      I18nManager.instance.languageAsset = value;
     }
   }
 
   //#region LabelModel
   @property
-  private _labelModel: LocalizedLabelMode = LocalizedLabelMode.DATA;
+  private _labelModel: I18nLabelMode = I18nLabelMode.DATA;
   @property({
-    type: Enum(LocalizedLabelMode),
+    type: Enum(I18nLabelMode),
     tooltip: "本地化文本显示模式（仅编辑状态有效）",
   })
   get labelModel() {
@@ -58,7 +58,7 @@ export class LocalizedSetting extends Component {
   }
   private set labelModel(value) {
     this._labelModel = value;
-    LocalizedManager.instance.labelModel = this._labelModel;
+    I18nManager.instance.labelModel = this._labelModel;
   }
   //#endregion
 
@@ -72,15 +72,15 @@ export class LocalizedSetting extends Component {
   }
   set assetPath(value: string) {
     if (EDITOR) {
-      LocalizedManager.instance.assetPath = value;
+      I18nManager.instance.assetPath = value;
     }
   }
 
   protected onLoad(): void {
     if (this._defaultAsset) {
-      LocalizedManager.instance.languageAsset = this._defaultAsset;
+      I18nManager.instance.languageAsset = this._defaultAsset;
     } else {
-      console.warn("LocalizedSetting: defaultAsset is not set.");
+      console.warn("I18nSetting: defaultAsset is not set.");
     }
   }
 
@@ -90,6 +90,6 @@ export class LocalizedSetting extends Component {
    * @param language 自定义多语言
     */
   onLanguageSwitch(object: any, language: string) {
-    LocalizedManager.instance.switch(language);
+    I18nManager.instance.switch(language);
   }
 }

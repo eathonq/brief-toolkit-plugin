@@ -1,5 +1,5 @@
 /**
- * LocalizedLabel.ts - 本地化文本绑定组件
+ * I18nLabel.ts - 本地化文本绑定组件
  * @description 该组件实现了本地化文本的功能，支持Label、RichText和EditBox组件。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/i18n/localizedlabel}
  * 
@@ -13,8 +13,8 @@
 
 import { _decorator, Component, Label, RichText, EditBox, CCString } from "cc";
 import { EDITOR } from "cc/env";
-import { LocalizedManager } from "../core/LocalizedManager";
-import { LocalizedLabelMode } from "../core/ILocalizedManager";
+import { I18nManager } from "../core/I18nManager";
+import { I18nLabelMode } from "../core/II18nManager";
 import { I18nEventType } from "../core/I18nEvent";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
@@ -27,14 +27,14 @@ const COMP_ARRAY_CHECK: { type: any, property: string }[] = [
 ];
 
 /**
- * [i18n-LocalizedLabel]
+ * [i18n-I18nLabel]
  * i18n 本地化文本(支持Label,RichText,EditBox)
  */
-@ccclass('i18n.LocalizedLabel')
-@help('https://vangagh.gitbook.io/brief-toolkit/i18n/localizedlabel')
+@ccclass('i18n.I18nLabel')
+@help('https://vangagh.gitbook.io/brief-toolkit/i18n/i18nlabel')
 @executeInEditMode
-@menu('BriefToolkit/I18n/LocalizedLabel')
-export class LocalizedLabel extends Component {
+@menu('BriefToolkit/I18n/I18nLabel')
+export class I18nLabel extends Component {
 
   @property({
     tooltip: '绑定组件的名字',
@@ -107,13 +107,13 @@ export class LocalizedLabel extends Component {
       this.checkEditorComponent();
       return;
     }
-    LocalizedManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
     this.resetValue();
   }
 
   protected onDestroy() {
     if (EDITOR) return;
-    LocalizedManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+    I18nManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
   }
 
   private _onLanguageSwitched(): void {
@@ -132,12 +132,12 @@ export class LocalizedLabel extends Component {
   /** 重置值（I18nManager 使用） */
   resetValue(): void {
     const key = this._key;
-    const model = LocalizedManager.instance.labelModel;
+    const model = I18nManager.instance.labelModel;
     switch (model) {
-      case LocalizedLabelMode.DATA:
-        this.setComponentValue(LocalizedManager.instance.text(key, this._args));
+      case I18nLabelMode.DATA:
+        this.setComponentValue(I18nManager.instance.text(key, this._args));
         break;
-      case LocalizedLabelMode.PATH:
+      case I18nLabelMode.PATH:
         this.setComponentValue(key);
         break;
     }

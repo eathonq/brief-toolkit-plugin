@@ -1,5 +1,5 @@
 /**
- * LocalizedManager.ts - 本地化管理器（全局单例）
+ * I18nManager.ts - 本地化管理器（全局单例）
  * @description 该类实现了本地化管理器的全部核心功能：语言加载、切换、回退、事件、格式化。
  *              构造函数中自动调用 __i18nBind(this)，无需外部组件激活。
  *
@@ -11,9 +11,9 @@
  * @modified 2026-06-11
  */
 
-import { assetManager, EventTarget, ImageAsset, JsonAsset, SpriteFrame, Texture2D } from "cc";
+import { assetManager, ImageAsset, JsonAsset, SpriteFrame, Texture2D } from "cc";
 import { EDITOR } from "cc/env";
-import { ILocalizedManager, LocalizedLabelMode } from "./ILocalizedManager";
+import { II18nManager, I18nLabelMode } from "./II18nManager";
 import { CCResources } from "./CCResources";
 import { getI18nEditorSpriteUuidResolver } from "./I18nEditorBridge";
 import { I18nEventType } from "./I18nEvent";
@@ -49,12 +49,12 @@ function toLanguageMeta(obj: any): LanguageMeta | null {
 /**
  * 本地化管理器（全局单例）
  */
-export class LocalizedManager implements ILocalizedManager {
+export class I18nManager implements II18nManager {
   //#region  单例
-  private static _instance: LocalizedManager | null = null;
+  private static _instance: I18nManager | null = null;
   static get instance() {
     if (!this._instance) {
-      this._instance = new LocalizedManager();
+      this._instance = new I18nManager();
     }
     return this._instance;
   }
@@ -63,7 +63,7 @@ export class LocalizedManager implements ILocalizedManager {
   }
   //#endregion
 
-  private _eventTarget = new EventTarget();
+  private _listeners = new Map<I18nEventType, Set<(...args: any[]) => void>>();
   private _assetPath = I18N_ASSET_PATH;
   private _languageAsset: JsonAsset | null = null;
   private _languageMeta: LanguageMeta | null = null;
@@ -139,35 +139,51 @@ export class LocalizedManager implements ILocalizedManager {
   }
 
   //#region 事件订阅
+
   /**
    * 订阅 i18n 事件
    * @param event 事件类型
    * @param cb 回调函数
-   * @param target 回调绑定的 this 对象
    */
-  on(event: I18nEventType, cb: (...args: any[]) => void, target?: any): void {
-    this._eventTarget.on(event, cb, target);
+  on(event: I18nEventType, cb: (...args: any[]) => void): void {
+    let cbs = this._listeners.get(event);
+    if (!cbs) { cbs = new Set(); this._listeners.set(event, cbs); }
+    cbs.add(cb);
   }
 
   /**
    * 取消订阅 i18n 事件
    * @param event 事件类型
    * @param cb 回调函数
-   * @param target 回调绑定的 this 对象
    */
-  off(event: I18nEventType, cb: (...args: any[]) => void, target?: any): void {
-    this._eventTarget.off(event, cb, target);
+  off(event: I18nEventType, cb: (...args: any[]) => void): void {
+    const cbs = this._listeners.get(event);
+    if (!cbs) return;
+    cbs.delete(cb);
+    if (cbs.size === 0) this._listeners.delete(event);
   }
+
+  /** 发射事件（快照遍历 + 单个回调异常隔离） */
+  private _emit(event: I18nEventType, payload: unknown): void {
+    const cbs = this._listeners.get(event);
+    if (!cbs || cbs.size === 0) return;
+    for (const cb of [...cbs]) {
+      try { cb(payload); } catch (e) {
+        console.error(`[I18n] 事件 "${event}" 回调异常:`, e);
+      }
+    }
+  }
+
   //#endregion
 
-  private _labelModel: LocalizedLabelMode = LocalizedLabelMode.DATA;
+  private _labelModel: I18nLabelMode = I18nLabelMode.DATA;
   get labelModel() {
     return this._labelModel;
   }
   set labelModel(value) {
     if (this._labelModel === value) return;
     this._labelModel = value;
-    this._eventTarget.emit(I18nEventType.LANGUAGE_SWITCHED, { language: this.language });
+    this._emit(I18nEventType.LANGUAGE_SWITCHED, { language: this.language });
   }
 
   /** 扁平化多语言数据（提高查找性能） */
@@ -203,7 +219,7 @@ export class LocalizedManager implements ILocalizedManager {
     this._languageMap.clear();
     this.flattenData(configData);
     // 事件驱动刷新：替代原先 updateRenderers() 的全场景遍历
-    this._eventTarget.emit(I18nEventType.LANGUAGE_SWITCHED, { language: this._languageMeta.code });
+    this._emit(I18nEventType.LANGUAGE_SWITCHED, { language: this._languageMeta.code });
   }
 
   /**
@@ -220,7 +236,7 @@ export class LocalizedManager implements ILocalizedManager {
 
     const from = this._languageMeta?.code ?? '';
     this._isSwitching = true;
-    this._eventTarget.emit(I18nEventType.LANGUAGE_BEFORE_SWITCH, { from, to: language });
+    this._emit(I18nEventType.LANGUAGE_BEFORE_SWITCH, { from, to: language });
 
     // 保存旧状态用于失败回滚
     const savedAsset = this._languageAsset;
@@ -248,7 +264,7 @@ export class LocalizedManager implements ILocalizedManager {
       this._languageMap = savedMap;
 
       const error = e instanceof Error ? e : new Error(String(e));
-      this._eventTarget.emit(I18nEventType.LANGUAGE_SWITCH_ERROR, { from, to: language, error });
+      this._emit(I18nEventType.LANGUAGE_SWITCH_ERROR, { from, to: language, error });
       throw error;
     } finally {
       this._isSwitching = false;
@@ -378,7 +394,7 @@ export class LocalizedManager implements ILocalizedManager {
       if (!uuid) return null;
       return await this.loadEditorSpriteFrameByUuid(uuid);
     } catch (error) {
-      console.warn("LocalizedManager: editor sprite resolver failed", error);
+      console.warn("I18nManager: editor sprite resolver failed", error);
       return null;
     }
   }

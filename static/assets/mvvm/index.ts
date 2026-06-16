@@ -17,5 +17,5 @@ export { BindingData } from './components/Binding';
 export { DataContextData } from './components/DataContext';
 export { ItemsSourceData } from './components/ItemsSource';
 
-// ──────────── 纯 TS API（装饰器、响应式、MessageBus、BaseViewModel、ErrorBoundary、类型工具） ────────────
+// ──────────── 纯 TS API（装饰器、响应式、BaseViewModel、ErrorBoundary、类型工具） ────────────
 export * from './pure';

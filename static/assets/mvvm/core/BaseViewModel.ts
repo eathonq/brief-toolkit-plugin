@@ -1,14 +1,16 @@
 /**
  * BaseViewModel.ts - 视图模型基类
- * @description 提供完整的 ViewModel 生命周期钩子。
+ * @description 提供完整的 ViewModel 生命周期钩子，以及 VM 间事件通信的 emit 方法。
  *
  * @author eathonq
  * @license MIT
  * @version v1.2.0
  *
  * @created 2026-06-09
- * @modified 2026-06-10
+ * @modified 2026-06-16
  */
+
+import { EventBus } from "./EventBus";
 
 /**
  * ViewModel 基类
@@ -16,19 +18,44 @@
  * 所有 ViewModel 必须继承此类，使用 @vm 装饰器注册。
  * 生命周期方法均为可选覆盖，框架在合适时机调用。
  *
+ * VM 间通信：
+ * - 发送：`this.emit('event-name', payload)`
+ * - 接收：`@event('event-name') onXxx(payload) { }`
+ *
  * @example
  * ```ts
  * @vm('MyVM')
  * class MyVM extends BaseViewModel {
  *   @prop count = 0;
  *
- *   onLoaded(): void {
- *     MessageBus.on('score-update', (s) => this.count += s);
+ *   // 发送事件
+ *   @func
+ *   onButtonClick() {
+ *     this.emit('score-update', 10);
+ *   }
+ *
+ *   // 声明式接收事件
+ *   @event('score-update')
+ *   onScoreUpdate(s: number) {
+ *     this.count += s;
  *   }
  * }
  * ```
  */
 export abstract class BaseViewModel {
+  // ──────────── VM 间事件通信 ────────────
+
+  /**
+   * 向其他 ViewModel 发送事件。
+   * 接收方通过 `@event('event-name')` 装饰器声明式订阅。
+   *
+   * @param name   事件名称（与接收方 @event 的参数一致）
+   * @param payload 可选载荷，类型由接收方决定
+   */
+  protected emit(name: string, payload?: unknown): void {
+    EventBus.emit(name, payload);
+  }
+
   // ──────────── 生命周期 ────────────
 
   /** 构造完成后调用（在 reactive 包装之前） */

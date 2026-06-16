@@ -1,5 +1,5 @@
 /**
- * LocalizedSprite.ts - 本地化图片绑定组件
+ * I18nSprite.ts - 本地化图片绑定组件
  * @description 该组件实现了本地化图片的功能，支持Sprite组件。
  * @see {@link https://vangagh.gitbook.io/brief-toolkit/i18n/localizedsprite}
  * 
@@ -14,20 +14,20 @@
 import { _decorator, Component, Sprite, SpriteFrame } from "cc";
 import { EDITOR } from "cc/env";
 import { CCResources } from "../core/CCResources";
-import { LocalizedManager } from "../core/LocalizedManager";
+import { I18nManager } from "../core/I18nManager";
 import { I18nEventType } from "../core/I18nEvent";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
 /**
- * [i18n-LocalizedSprite]
+ * [i18n-I18nSprite]
  * i18n 本地化图片(支持Sprite)
  */
-@ccclass('i18n.LocalizedSprite')
-@help('https://vangagh.gitbook.io/brief-toolkit/i18n/localizedsprite')
+@ccclass('i18n.I18nSprite')
+@help('https://vangagh.gitbook.io/brief-toolkit/i18n/i18nsprite')
 @executeInEditMode
-@menu('BriefToolkit/I18n/LocalizedSprite')
-export class LocalizedSprite extends Component {
+@menu('BriefToolkit/I18n/I18nSprite')
+export class I18nSprite extends Component {
 
   // 用于防止异步加载回调覆盖最新语言对应的图片
   private _resetVersion: number = 0;
@@ -84,13 +84,13 @@ export class LocalizedSprite extends Component {
       this.checkEditorComponent();
       return;
     }
-    LocalizedManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
     this.resetValue();
   }
 
   protected onDestroy() {
     if (EDITOR) return;
-    LocalizedManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched, this);
+    I18nManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
   }
 
   private _onLanguageSwitched(): void {
@@ -101,11 +101,11 @@ export class LocalizedSprite extends Component {
   resetValue(): void {
     const requestVersion = ++this._resetVersion;
     const key = this._key;
-    const imagePath = LocalizedManager.instance.image(key);
+    const imagePath = I18nManager.instance.image(key);
 
-    // 编辑器模式下直接使用 LocalizedManager 的接口加载资源，以支持本地化预览功能
+    // 编辑器模式下直接使用 I18nManager 的接口加载资源，以支持本地化预览功能
     if (EDITOR) {
-      LocalizedManager.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
+      I18nManager.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
         this.setComponentValue(spriteFrame);
       });
       return;

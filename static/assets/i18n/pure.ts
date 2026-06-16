@@ -17,13 +17,13 @@ export { I18n } from './core/I18n';
 export { DefaultI18nManager } from './core/DefaultI18nManager';
 
 // ──────────── 接口 ────────────
-export type { ILocalizedManager } from './core/ILocalizedManager';
+export type { II18nManager } from './core/II18nManager';
 
 // ──────────── 工具 ────────────
 export { DateFormatter } from './core/DateFormatter';
 
 // ──────────── 枚举 & 类型 ────────────
-export { LocalizedLabelMode } from './core/ILocalizedManager';
+export { I18nLabelMode } from './core/II18nManager';
 export { I18nEventType } from './core/I18nEvent';
 export type {
   I18nLanguageBeforeSwitchEvent,

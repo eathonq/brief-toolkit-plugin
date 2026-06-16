@@ -1,5 +1,5 @@
 /**
- * ILocalizedManager.ts - 本地化管理接口
+ * II18nManager.ts - 本地化管理接口
  * @description 该接口定义了本地化管理器的核心功能，包括语言切换和文本获取等。
  *
  * @author eathonq
@@ -13,7 +13,7 @@
 import { I18nEventType } from "./I18nEvent";
 
 /** 本地化显示模式 */
-export enum LocalizedLabelMode {
+export enum I18nLabelMode {
   /** 解析数据 */
   DATA = 0,
   /** 路径数据 */
@@ -22,10 +22,10 @@ export enum LocalizedLabelMode {
 
 /**
  * 本地化管理接口
- * @description 所有方法由 LocalizedManager（Cocos 实现）和 DefaultI18nManager（Null Object）共同实现。
+ * @description 所有方法由 I18nManager（Cocos 实现）和 DefaultI18nManager（Null Object）共同实现。
  *              ViewModel 层通过 I18n 静态门面调用，永不直接依赖实现类。
  */
-export interface ILocalizedManager {
+export interface II18nManager {
 
   /** 当前语言代码 */
   readonly language: string;
@@ -79,15 +79,13 @@ export interface ILocalizedManager {
    * 订阅 i18n 事件
    * @param event 事件类型
    * @param cb 回调函数
-   * @param target 回调绑定的 this 对象
    */
-  on(event: I18nEventType, cb: (...args: any[]) => void, target?: any): void;
+  on(event: I18nEventType, cb: (...args: any[]) => void): void;
 
   /**
    * 取消订阅 i18n 事件
    * @param event 事件类型
    * @param cb 回调函数
-   * @param target 回调绑定的 this 对象
    */
-  off(event: I18nEventType, cb: (...args: any[]) => void, target?: any): void;
+  off(event: I18nEventType, cb: (...args: any[]) => void): void;
 }
