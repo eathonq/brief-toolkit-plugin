@@ -1,14 +1,16 @@
 /**
- * EventBus.ts - VM 间事件总线（框架内部）
- * @description 纯 TS 零依赖的全局静态发布/订阅，ViewModel 间通信的底层实现。
- *              不对外导出，业务代码通过 BaseViewModel.emit() 发送、@event 接收。
+ * EventBus.ts - 统一事件总线
+ * @description 纯 TS 零依赖的全局静态发布/订阅，brief-toolkit 统一事件通信的基础设施。
+ *
+ *              ViewModel 推荐使用 BaseViewModel.emit() + @event 声明式收发（框架自动管理订阅生命周期）；
+ *              外部模块可直接调用 EventBus.on/emit/off 与 ViewModel 在同一个事件命名空间中通信。
  *
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.1.0
  *
  * @created 2026-06-09
- * @modified 2026-06-16
+ * @modified 2026-06-18
  */
 
 /** 订阅令牌，用于取消订阅 */
@@ -24,8 +26,10 @@ const _events = new Map<string, Set<EventCallback>>();
 const _onceWrappers = new WeakMap<EventCallback, EventCallback>();
 
 /**
- * VM 间事件总线（全静态方法，框架内部使用）
+ * 统一事件总线（全静态方法）
  *
+ * ViewModel 间通过 BaseViewModel.emit() + @event 声明式收发，
+ * 外部模块可直接调用 EventBus.on/emit/off，共享同一事件命名空间。
  * 单个回调异常不影响其他订阅者。
  */
 export class EventBus {
