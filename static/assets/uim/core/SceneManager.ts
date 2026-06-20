@@ -43,9 +43,11 @@ export class SceneManager implements ISceneManager {
     const fromScene = director.getScene()?.name ?? '';
     const info: SceneLifecycleData = { fromScene, toScene: name, data };
 
-    // 依次执行离开钩子
+    // 依次执行离开钩子（异常隔离，单个回调失败不影响后续）
     for (const handler of Scenes.onBeforeLeave) {
-      await handler(info);
+      try { await handler(info); } catch (e) {
+        console.error(`[Scenes] onBeforeLeave 回调异常:`, e);
+      }
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -77,7 +79,9 @@ export class SceneManager implements ISceneManager {
 
   private async _runAfterEnter(info: SceneLifecycleData): Promise<void> {
     for (const handler of Scenes.onAfterEnter) {
-      await handler(info);
+      try { await handler(info); } catch (e) {
+        console.error(`[Scenes] onAfterEnter 回调异常:`, e);
+      }
     }
   }
 }

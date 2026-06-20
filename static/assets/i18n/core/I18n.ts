@@ -14,7 +14,6 @@
 
 import { II18nManager } from "./II18nManager";
 import { DefaultI18nManager } from "./DefaultI18nManager";
-import { I18nEventType } from "./I18nEvent";
 
 /**
  * 模块级私有状态。
@@ -56,11 +55,6 @@ export class I18n {
   /** 当前语言代码 */
   static get language(): string {
     return I18n.current.language;
-  }
-
-  /** 是否正在切换语言 */
-  static get isSwitching(): boolean {
-    return I18n.current.isSwitching;
   }
 
   /** 当前回退语言代码（未设置时返回 null） */
@@ -112,23 +106,4 @@ export class I18n {
     I18n.current.clearFallbackLanguage();
   }
 
-  // ── 事件 ──
-
-  /**
-   * 订阅 i18n 事件
-   * @param event 事件类型
-   * @param cb 回调函数
-   */
-  static on(event: I18nEventType, cb: (...args: any[]) => void): void {
-    I18n.current.on(event, cb);
-  }
-
-  /**
-   * 取消订阅 i18n 事件
-   * @param event 事件类型
-   * @param cb 回调函数
-   */
-  static off(event: I18nEventType, cb: (...args: any[]) => void): void {
-    I18n.current.off(event, cb);
-  }
 }

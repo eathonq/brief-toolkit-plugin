@@ -4,27 +4,22 @@
  *              I18n 调用永不因未绑定而崩溃。
  *              - text() 返回 key 本身作为兜底显示
  *              - switch() / setFallbackLanguage() 输出 console.debug 便于排查
- *              - on/off 为安全的 no-op
  *
  * @author eathonq
  * @license MIT
- * @version v1.1.0
+ * @version v1.2.0
  *
  * @created 2026-06-10
+ * @modified 2026-06-20
  */
 
 import { II18nManager } from "./II18nManager";
-import { I18nEventType } from "./I18nEvent";
 
 export class DefaultI18nManager implements II18nManager {
   static readonly instance = new DefaultI18nManager();
 
   get language(): string {
     return "";
-  }
-
-  get isSwitching(): boolean {
-    return false;
   }
 
   get fallbackLanguage(): string | null {
@@ -48,8 +43,4 @@ export class DefaultI18nManager implements II18nManager {
   }
 
   clearFallbackLanguage(): void {}
-
-  on(_event: I18nEventType, _cb: (...args: any[]) => void): void {}
-
-  off(_event: I18nEventType, _cb: (...args: any[]) => void): void {}
 }

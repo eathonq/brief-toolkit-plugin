@@ -18,7 +18,7 @@ import { reactive } from "../core/Reactive";
 import { DataContext } from "./DataContext";
 import { decoratorData } from "../core/DecoratorData";
 import { BaseViewModel } from "../core/BaseViewModel";
-import { EventBus, SubscriptionToken } from "../core/EventBus";
+import { EventBus, SubscriptionToken } from "../../common/core/EventBus";
 import { ErrorBoundary } from "../core/ErrorBoundary";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;

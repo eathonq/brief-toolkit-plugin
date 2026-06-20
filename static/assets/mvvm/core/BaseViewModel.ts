@@ -10,7 +10,7 @@
  * @modified 2026-06-16
  */
 
-import { EventBus } from "./EventBus";
+import { EventBus } from "../../common/core/EventBus";
 
 /**
  * ViewModel 基类

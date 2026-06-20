@@ -15,6 +15,7 @@ import { _decorator, Component, Sprite, SpriteFrame } from "cc";
 import { EDITOR } from "cc/env";
 import { I18nManager } from "../core/I18nManager";
 import { I18nEventType } from "../core/I18nEvent";
+import { EventBus, SubscriptionToken } from "../../common/core/EventBus";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -78,18 +79,23 @@ export class I18nSprite extends Component {
 
   //#endregion
 
+  private _langToken: SubscriptionToken | null = null;
+
   protected onLoad() {
     if (EDITOR) {
       this.checkEditorComponent();
       return;
     }
-    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
+    this._langToken = EventBus.on(I18nEventType.LANGUAGE_SWITCHED, () => this._onLanguageSwitched());
     this.resetValue();
   }
 
   protected onDestroy() {
     if (EDITOR) return;
-    I18nManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
+    if (this._langToken) {
+      EventBus.offByToken(this._langToken);
+      this._langToken = null;
+    }
   }
 
   private _onLanguageSwitched(): void {

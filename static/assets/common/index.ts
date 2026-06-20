@@ -7,6 +7,7 @@
  * @version v1.1.0
  *
  * @created 2026-06-19
+ * @modified 2026-06-20
  */
 
 // ──────────── 底层资源加载器 ────────────
@@ -18,3 +19,6 @@ export { AssetScopeManager } from './core/AssetScopeManager';
 
 // ──────────── Cocos Component（挂载到场景节点）────────────
 export { AssetScopeMount } from './components/AssetScopeMount';
+
+// ──────────── 纯 TS API（ViewModel 可用，零 Cocos 依赖）────────────
+export * from './pure';

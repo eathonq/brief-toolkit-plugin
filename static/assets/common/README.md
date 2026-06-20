@@ -104,6 +104,53 @@ scope.releaseAll(); // JSON + 图片统一释放
 
 ---
 
+### EventBus — 统一事件总线
+
+纯 TS、零依赖的全局发布/订阅，是 `brief-toolkit` 跨模块事件通信的统一基础设施。
+
+| 方法 | 说明 |
+| :--- | :--- |
+| `EventBus.emit(name, payload?)` | 发送事件 |
+| `EventBus.on(name, callback)` | 订阅事件，返回 `SubscriptionToken` |
+| `EventBus.once(name, callback)` | 一次性订阅 |
+| `EventBus.off(name, callback)` | 取消订阅 |
+| `EventBus.offByToken(token)` | 通过令牌取消订阅 |
+| `EventBus.clear(name?)` | 清空指定事件或全部事件 |
+| `EventBus.subscriberCount(name)` | 查询某事件的订阅者数量 |
+
+**使用示例**：
+
+```ts
+import { EventBus } from 'db://assets/brief-toolkit/common/pure';
+
+// 订阅
+const token = EventBus.on<{ score: number }>('score-changed', (payload) => {
+  console.log(`Score: ${payload.score}`);
+});
+
+// 发送
+EventBus.emit('score-changed', { score: 100 });
+
+// 取消
+EventBus.offByToken(token);
+```
+
+**事件命名建议**：使用 `module:action` 格式避免冲突 — `inventory:item-acquired`、`player:level-up`。
+
+**各模块接入方式**：
+
+| 模块 | 使用方式 |
+| :--- | :--- |
+| **mvvm** | ViewModel 通过 `this.emit()` + `@event` 声明式收发（框架自动管理生命周期） |
+| **i18n** | `I18nManager` 内部 emit；订阅统一用 `EventBus.on(I18nEventType.XXX, cb)` |
+| **uim** | 保持 Cocos `Node.emit/on`（视图级事件）；跨模块通信可用 EventBus |
+| **guide** | 保持回调注入（任务级事件）；跨模块通信可用 EventBus |
+| **外部模块** | `EventBus.emit/on/off` 直接调用 |
+
+> **EventBus 是 brief-toolkit 插件对外公开的唯一事件 API。** 所有模块（mvvm/i18n/uim/guide）及外部代码统一通过 `EventBus` 收发事件。ViewModel 内部可用 `this.emit()` + `@event` 声明式语法糖（框架层自动调用 EventBus）。单个回调异常不影响其他订阅者。
+
+---
+
 ## 使用模式
 
 ### 模式 1：场景级自动管理
@@ -146,6 +193,7 @@ class MyGlobalManager {
 | **ref-count 安全** | 依赖 Cocos AssetManager 自带 ref-count，跨 Scope 共享资源正确协作 |
 | **层级清晰** | CCAssets (加载) → AssetScope (追踪) → AssetScopeManager (管理) → AssetScopeMount (接入) |
 | **去抖内置** | `setNodeSprite` 在 Manager 层独立去抖，CCAssets 保持纯函数无状态 |
+| **统一事件** | EventBus 提供跨模块 pub/sub，ViewModel 声明式 + 外部模块直接调用共享同一命名空间 |
 
 ---
 
@@ -153,3 +201,4 @@ class MyGlobalManager {
 
 - `cc` (SpriteFrame, JsonAsset, Prefab, AudioClip, Node, Sprite, AssetManager, ...)
 - 本模块内部：`CCAssets` ← `AssetScope` ← `AssetScopeManager` ← `AssetScopeMount`
+- 纯 TS 层：`EventBus` 零依赖，可安全用于单元测试和 Node.js 环境

@@ -1,16 +1,17 @@
 /**
  * EventBus.ts - 统一事件总线
  * @description 纯 TS 零依赖的全局静态发布/订阅，brief-toolkit 统一事件通信的基础设施。
+ *              位于 common 公共模块，供 mvvm / i18n / uim / guide 及外部代码使用。
  *
  *              ViewModel 推荐使用 BaseViewModel.emit() + @event 声明式收发（框架自动管理订阅生命周期）；
  *              外部模块可直接调用 EventBus.on/emit/off 与 ViewModel 在同一个事件命名空间中通信。
  *
  * @author eathonq
  * @license MIT
- * @version v1.1.0
+ * @version v1.2.0
  *
  * @created 2026-06-09
- * @modified 2026-06-18
+ * @modified 2026-06-20
  */
 
 /** 订阅令牌，用于取消订阅 */

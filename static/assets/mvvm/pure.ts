@@ -41,10 +41,6 @@ export {
 // ──────────── ViewModel 基类 ────────────
 export { BaseViewModel } from './core/BaseViewModel';
 
-// ──────────── 统一事件总线 ────────────
-export { EventBus } from './core/EventBus';
-export type { SubscriptionToken, EventCallback } from './core/EventBus';
-
 // ──────────── 错误边界 ────────────
 export { ErrorBoundary } from './core/ErrorBoundary';
 export type { GlobalErrorHandler } from './core/ErrorBoundary';

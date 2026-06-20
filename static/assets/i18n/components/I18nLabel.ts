@@ -16,6 +16,7 @@ import { EDITOR } from "cc/env";
 import { I18nManager } from "../core/I18nManager";
 import { I18nLabelMode } from "../core/II18nManager";
 import { I18nEventType } from "../core/I18nEvent";
+import { EventBus, SubscriptionToken } from "../../common/core/EventBus";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -102,8 +103,10 @@ export class I18nLabel extends Component {
   }
   //#endregion
 
+  private _langToken: SubscriptionToken | null = null;
+
   protected onLoad() {
-    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
+    this._langToken = EventBus.on(I18nEventType.LANGUAGE_SWITCHED, () => this._onLanguageSwitched());
     if (EDITOR) {
       this.checkEditorComponent();
       return;
@@ -112,7 +115,10 @@ export class I18nLabel extends Component {
   }
 
   protected onDestroy() {
-    I18nManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
+    if (this._langToken) {
+      EventBus.offByToken(this._langToken);
+      this._langToken = null;
+    }
   }
 
   private _onLanguageSwitched(): void {

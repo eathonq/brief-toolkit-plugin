@@ -1,6 +1,6 @@
 # brief-toolkit
 
-> Cocos Creator 3.8.8 生产级游戏框架插件 — 统一资源管理、MVVM 数据绑定（含统一事件总线）、UI 视图管理、国际化、引导系统、本地存储，六模块零耦合按需取用。
+> Cocos Creator 3.8.8 生产级游戏框架插件 — 统一资源管理、统一事件总线（EventBus）、MVVM 数据绑定、UI 视图管理、国际化、引导系统、本地存储，六模块零耦合按需取用。
 
 [🇨🇳 中文说明](#功能大纲) · [📖 模块文档](#模块总览)
 
@@ -10,10 +10,10 @@
 
 | 模块 | 版本 | 定位 | 依赖 |
 | :--- | :---: | :--- | :--- |
-| [Common](#common-公共资源管理) | v1.1 | 统一资源加载 + AssetScope 生命周期管理 + 场景自动释放 | `cc` (SpriteFrame / JsonAsset / Prefab / AudioClip) |
-| [MVVM](#mvvm-数据绑定框架) | v1.2 | 生产级 MVVM 框架，装饰器 + 响应式 + 列表渲染 + 对象池 + 统一事件总线 | 纯 TS 层零 `cc` 依赖 |
+| [Common](#common-公共资源管理) | v1.2 | 统一资源加载 + AssetScope 生命周期管理 + **统一事件总线（EventBus）** | 纯 TS 层零 `cc` 依赖（EventBus），Cocos 层 `cc` (SpriteFrame 等) |
+| [MVVM](#mvvm-数据绑定框架) | v1.2 | 装饰器 + 响应式 + 列表渲染 + 对象池 + `@event`/`emit` 声明式事件通信 | 纯 TS 层零 `cc` 依赖 |
 | [UIM](#uim-视图管理器) | v1.2 | 视图 / 消息框 / 提示框 / 场景切换 / 音频 / 皮肤 | 静态门面 + Null Object 容错 |
-| [i18n](#i18n-国际化) | v1.1 | 文本 + 图片本地化，事件驱动刷新，语言回退 + ResourceScope 资源管理 | 静态门面 + 事件总线 + Common |
+| [i18n](#i18n-国际化) | v1.2 | 文本 + 图片本地化，EventBus 驱动刷新，语言回退 + AssetScope 资源管理 | 静态门面 + Common (AssetScope + EventBus) |
 | [Guide](#guide-引导系统) | v1.3 | 任务-步骤引导引擎，遮罩高亮 + 对话框 + 指示器 | 静态门面 + 状态机 |
 | [Storage](#storage-本地存储) | v1.0 | JSON 序列化封装，默认值回退，存储不可用时内存降级 | 零依赖，纯 TS |
 
@@ -21,7 +21,7 @@
 
 ## Common 公共资源管理
 
-**统一资源加载与生命周期管理：CCAssets 底层加载器 → AssetScope 作用域追踪 → AssetScopeManager 场景级自动管理 → AssetScopeMount 零代码接入。**
+**统一资源加载 + 统一事件总线：CCAssets 底层加载器 → AssetScope 作用域追踪 → AssetScopeManager 场景级自动管理 → AssetScopeMount 零代码接入。EventBus 是插件唯一公开事件 API，供各模块及外部代码统一使用。**
 
 ### 四层架构
 
@@ -55,6 +55,23 @@ scope.releaseAll(); // 切语言/销毁时统一释放
 
 `AssetScope` 和 `AssetScopeManager` 统一支持：`SpriteFrame` / `JsonAsset` / `Prefab` / `AudioClip`。路径追踪用 `Set<string>` 类型无关，`releaseAll()` 统一按路径释放。
 
+### EventBus 统一事件总线
+
+纯 TS、零依赖的全局 pub/sub，插件唯一公开事件 API：
+
+```ts
+import { EventBus } from 'db://brief-toolkit-plugin/common/pure';
+
+const token = EventBus.on('score-changed', (payload) => { ... });
+EventBus.emit('score-changed', 100);
+EventBus.offByToken(token);
+```
+
+- **mvvm**：`this.emit()` + `@event` 声明式语法糖（框架内部调 EventBus）
+- **i18n**：`I18nManager` 内部 emit 到 EventBus，`I18nLabel`/`I18nSprite` 直接订阅
+- **外部模块**：从 `common/pure` 导入 `EventBus` 直接调用
+- 事件命名建议 `module:action` 格式（如 `inventory:item-acquired`）
+
 ---
 
 ## MVVM 数据绑定框架
@@ -70,7 +87,7 @@ scope.releaseAll(); // 切语言/销毁时统一释放
 | **生命周期** | `BaseViewModel` 提供 9 个钩子：`onCreate` → `onLoaded` → `onEnable` / `onDisable` → `onUpdate` → `onDestroy` → `onAppShow` / `onAppHide` → `onError` |
 | **VM 间通信** | `this.emit()` 发送 + `@event('name')` 声明式接收，框架自动管理订阅生命周期 |
 | **错误隔离** | `ErrorBoundary.wrap` / `tryRun` / `wrapCallback`，异常不影响其他链路 |
-| **事件总线** | 统一 `EventBus`，VM 用 `this.emit()` + `@event`，外部模块直接 `EventBus.emit/on/off` 共享同一命名空间 |
+| **事件总线** | 底层走 `common/EventBus`，VM 用 `this.emit()` + `@event` 声明式语法糖，与外部 `EventBus` 共享同一命名空间 |
 | **类型工具** | `ViewModelOf` / `PropType` / `BindingKeys` / `DeepPath` 等编译期类型推导 |
 
 ### Cocos 组件层
@@ -147,7 +164,7 @@ scope.releaseAll(); // 切语言/销毁时统一释放
 - **语言回退**：`setFallbackLanguage(lang)` → key 缺失时链式回退
 - **事件驱动刷新**：`LANGUAGE_BEFORE_SWITCH` → `LANGUAGE_SWITCHED` / `LANGUAGE_SWITCH_ERROR`
 - **调试模式**：`I18nLabelMode.PATH` 显示 key 原文，方便定位翻译缺失
-- **Null Object 容错**：未初始化时 `text()` 返回 key、`switch()` 静默成功、`on()` 安全忽略
+- **Null Object 容错**：未初始化时 `text()` 返回 key、`switch()` 静默成功
 
 ---
 
@@ -229,7 +246,7 @@ idle → startTask() → running ⇄ nextStep / previousStep / jumpTo(n)
 | **零耦合按需取用** | 每个模块有独立 `pure.ts` 入口，逻辑层零 `cc` 依赖，可单独引入 |
 | **静态门面 + Null Object** | UIM / i18n / Guide 均采用门面模式，未绑定 Manager 时自动兜底，永不崩溃 |
 | **事件驱动** | i18n 语言切换、UIM 皮肤刷新均采用事件广播精确通知（非全场景遍历） |
-| **边界清晰** | Guide 是 UI 播放器非任务系统、Storage 是薄封装非状态管理、EventBus 是统一事件总线，ViewModel 用 `@event` 声明式、外部代码直接调用 API |
+| **边界清晰** | Guide 是 UI 播放器非任务系统、Storage 是薄封装非状态管理、EventBus 位于 common 是唯一公开事件 API，ViewModel 用 `@event` 声明式语法糖 |
 | **单元测试友好** | 每个模块提供 `pure.ts`，可在 Node.js / Vitest 中直接引用，无需启动 Cocos 引擎 |
 
 ---

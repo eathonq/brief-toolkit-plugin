@@ -10,8 +10,6 @@
  * @modified 2026-06-10（扩展事件/状态/回退签名 + 接口重命名）
  */
 
-import { I18nEventType } from "./I18nEvent";
-
 /** 本地化显示模式 */
 export enum I18nLabelMode {
   /** 解析数据 */
@@ -29,9 +27,6 @@ export interface II18nManager {
 
   /** 当前语言代码 */
   readonly language: string;
-
-  /** 是否正在切换语言 */
-  readonly isSwitching: boolean;
 
   /** 当前回退语言代码（未设置时返回 null） */
   readonly fallbackLanguage: string | null;
@@ -74,18 +69,4 @@ export interface II18nManager {
 
   /** 清除回退语言 */
   clearFallbackLanguage(): void;
-
-  /**
-   * 订阅 i18n 事件
-   * @param event 事件类型
-   * @param cb 回调函数
-   */
-  on(event: I18nEventType, cb: (...args: any[]) => void): void;
-
-  /**
-   * 取消订阅 i18n 事件
-   * @param event 事件类型
-   * @param cb 回调函数
-   */
-  off(event: I18nEventType, cb: (...args: any[]) => void): void;
 }

@@ -34,7 +34,7 @@ Cocos Component
 
 ```
 BaseViewModel  ← VM 生命周期基类 + emit() / @event 声明式事件
-EventBus       ← 统一事件总线（与 VM 共享事件命名空间，外部可直接调用）
+EventBus       ← 统一事件总线（位于 common 模块，全局唯一事件 API）
 Reactive       ← 响应式内核（Proxy 依赖追踪）
 DecoratorData  ← 装饰器元数据注册表
 ErrorBoundary  ← 异常捕获隔离
@@ -52,7 +52,6 @@ mvvmType       ← TypeScript 类型工具
 | `Binding` | Cocos 组件 | 连接 UI 组件属性 ↔ 数据字段，支持 4 种绑定模式 |
 | `CCElement` | Cocos 组件 | UI 组件适配：识别 Label/EditBox/Sprite 等，统一套读写 + 事件监听 |
 | `BaseViewModel` | 纯 TS | 9 个生命周期钩子 + `emit()` 发送 + `@event` 接收 |
-| `EventBus` | 纯 TS | 统一事件总线，VM 声明式收发，外部代码直接 `EventBus.emit/on/off` 共享同一命名空间 |
 | `Reactive` | 纯 TS | Vue3 风格响应式：reactive/watch/computed/batch |
 | `ErrorBoundary` | 纯 TS | try-catch 包裹器，绑定/回调异常不影响其他链路 |
 | `MvvmNodePool` | Cocos | 基于 NodePool 封装，按模板分组缓存，出入池时自动调 suspend/resume |
@@ -95,7 +94,6 @@ mvvm/
 │   ├── Decorator.ts             # @vm/@model/@prop/@func/@event
 │   ├── DecoratorData.ts         # 装饰器元数据注册表
 │   ├── ErrorBoundary.ts         # try-catch 隔离
-│   ├── EventBus.ts              # 统一事件总线（公开导出，供 ViewModel 及外部模块使用）
 │   ├── NodePool.ts              # 对象池 + IPoolable 接口
 │   ├── Reactive.ts              # 响应式内核
 │   └── mvvmType.ts              # 类型工具（ViewModelOf / PropType / BindingKeys）
@@ -187,18 +185,11 @@ ViewModelData.getStats(); // { names, targets, nodes }
 
 ---
 
-## 6. 统一事件总线 (EventBus)
+## 6. VM 间事件通信
 
-EventBus 是 brief-toolkit 的统一事件基础设施，ViewModel 和外部模块共享同一事件命名空间。
+底层使用 `common/EventBus` 作为统一事件总线。ViewModel 提供声明式语法糖：`this.emit()` 发送 + `@event` 接收，框架自动管理订阅生命周期（`onLoad` 订阅、`onDestroy` 解绑）。
 
-**两种使用方式**：
-
-| 场景 | 方式 | 说明 |
-| --- | --- | --- |
-| ViewModel 内部 | `this.emit()` + `@event` | 声明式，框架自动管理订阅生命周期 |
-| 外部模块 | `EventBus.emit/on/off` | 直接调用，与 VM 在同一命名空间通信 |
-
-### 6.1 ViewModel 声明式（推荐）
+### 6.1 声明式通信
 
 ```ts
 @vm('SenderVM')
@@ -220,43 +211,11 @@ class ReceiverVM extends BaseViewModel {
 }
 ```
 
-### 6.2 外部模块直接调用
+### 6.2 与外部模块通信
 
-```ts
-import { EventBus } from 'db://assets/brief-toolkit/mvvm/pure';
+外部模块（非 ViewModel）从 `common/pure` 导入 `EventBus` 直接调用，与 ViewModel 的 `@event` 共享同一命名空间，互通无阻。
 
-// 订阅（与 ViewModel 的 @event 接收同一事件）
-const token = EventBus.on('score-changed', (score) => {
-  console.log(`Score: ${score}`);
-});
-
-// 发送（ViewModel 的 @event 可接收）
-EventBus.emit('achievement:check', { type: 'score', value: 100 });
-
-// 一次性订阅
-EventBus.once('startup-complete', () => { /* ... */ });
-
-// 取消订阅
-EventBus.offByToken(token);
-```
-
-### 6.3 API 速查
-
-| 方法 | 说明 |
-| --- | --- |
-| `EventBus.emit(name, payload?)` | 发送事件 |
-| `EventBus.on(name, callback)` | 订阅，返回 `SubscriptionToken` |
-| `EventBus.once(name, callback)` | 一次性订阅 |
-| `EventBus.off(name, callback)` | 取消订阅 |
-| `EventBus.offByToken(token)` | 通过令牌取消 |
-| `EventBus.clear(name?)` | 清空指定事件 / 全部 |
-| `EventBus.subscriberCount(name)` | 订阅者数量 |
-
-### 6.4 事件命名建议
-
-使用 `module:action` 格式避免冲突：`inventory:item-acquired`、`player:level-up`、`network:disconnected`。
-
-> **设计原则**：EventBus 是统一事件总线。ViewModel 用 `@event` 声明式 + `this.emit()` 收发，外部模块用 `EventBus` 静态方法。两者共享同一 Map，互通无阻。各子系统自身的事件接口（如 `I18n.on`、`Scenes.onBeforeLeave`）仍独立运作，不经过 EventBus。
+> 事件命名建议使用 `module:action` 格式避免冲突。EventBus 完整 API 参考 [common/README](../common/README.md#eventbus--统一事件总线)。
 
 ---
 
@@ -477,7 +436,6 @@ interface IPoolable {
 | --- | :---: | :---: |
 | `reactive` / `watch` / `watchEffect` / `computed` / `batch` | ✅ | ✅ |
 | `BaseViewModel`（含 `emit` / `@event` VM 间通信） | ✅ | ✅ |
-| `EventBus`（统一事件总线） | ✅ | ✅ |
 | `_decorator`（@vm/@prop/@func/@event） | ✅ | ✅ |
 | `ErrorBoundary` | ✅ | ✅ |
 | 类型工具（ViewModelOf 等） | ✅ | ✅ |
@@ -494,7 +452,7 @@ interface IPoolable {
 4. 方法绑定统一使用 `OneWayToSource`
 5. `@prop` 无参时必须设默认值（用于运行时类型推导）
 6. pure.ts 不导出任何 Cocos 组件，可安全用于单元测试
-7. ViewModel 内部推荐 `this.emit()` + `@event` 声明式通信；外部模块可直接 `import { EventBus }` 调用
+7. ViewModel 内部推荐 `this.emit()` + `@event` 声明式通信；外部模块从 `common/pure` 导入 `EventBus` 直接调用
 
 ---
 
