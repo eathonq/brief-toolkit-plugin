@@ -15,7 +15,7 @@
 import { _decorator, Component, Node, Label, RichText, EditBox, Toggle, Button, Slider, ProgressBar, PageView, Sprite, ToggleContainer, Enum, CCClass, EventHandler, CCString } from 'cc';
 import { EDITOR } from 'cc/env';
 import { DataKind } from './DecoratorData';
-import { CCResources } from './CCResources';
+import { AssetScopeManager } from '../../common/core/AssetScopeManager';
 import { batch } from './Reactive';
 
 const { ccclass, property, help, executeInEditMode } = _decorator;
@@ -533,7 +533,7 @@ export class CCElement extends Component {
       sprite.spriteFrame = null;
       return;
     }
-    CCResources.setSprite(sprite, value);
+    AssetScopeManager.setNodeSprite(sprite, value);
   }
 
   private setToggleContainerValue(value: any) {

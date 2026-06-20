@@ -13,12 +13,14 @@
 
 import { Node, AudioClip, AudioSource, NodePool, director } from "cc";
 import { EventMutex } from "./EventMutex";
-import { CCResources } from "./CCResources";
+import { AssetScope } from "../../common/core/AssetScope";
 import { IAudioManager } from "./IAudioManager";
 import { __audiosBind } from "./Audios";
 
 const checkUndefinedAndNull = (value: any) => value === undefined || value === null;
 const clampVolume = (value: number) => Math.max(0, Math.min(1, value));
+
+const ASSET_SCOPE_AUDIO = "__AUDIO__";
 
 /** 音频管理器（全局单例） */
 export class AudioManager implements IAudioManager {
@@ -59,6 +61,7 @@ export class AudioManager implements IAudioManager {
   private _audioSourceMap: Map<number, AudioSource>;
   private _audioClipCaches: Map<string, AudioClip>;
   private _audioClipLoadingTasks: Map<string, Promise<AudioClip>>;
+  private _assetScope: AssetScope = new AssetScope(ASSET_SCOPE_AUDIO);
 
   private _musicVolume = 1;
   private _musicSwitch = false;
@@ -316,9 +319,7 @@ export class AudioManager implements IAudioManager {
 
   releaseAllAudioClip(): void {
     if (!this._audioClipCaches) return;
-    for (const path of this._audioClipCaches.keys()) {
-      CCResources.releasePath(path);
-    }
+    this._assetScope.releaseAll();
     this._audioClipCaches.clear();
     this._audioClipLoadingTasks?.clear();
   }
@@ -334,7 +335,7 @@ export class AudioManager implements IAudioManager {
     if (!loadingTask) {
       loadingTask = (async () => {
         try {
-          const clip = await CCResources.getAudioClip(path);
+          const clip = await this._assetScope.getAudioClip(path);
           if (clip) this._audioClipCaches.set(path, clip);
           return clip;
         } finally {

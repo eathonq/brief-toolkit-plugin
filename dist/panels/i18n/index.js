@@ -12,51 +12,34 @@ const RESOURCES_DB_ROOT = 'db://assets/resources';
 const SCHEMA_FILE_NAME = '.schema.json';
 const DEFAULT_LOCALE_VERSION = '1.0.0';
 const LOCALE_SCHEMA = {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": ".schema.json",
-  "title": "i18n locale file",
-  "type": "object",
-  "required": [
-    "meta"
-  ],
-  "properties": {
-    "meta": {
-      "type": "object",
-      "title": "多语言文本Meta信息",
-      "required": [
-        "code",
-        "name"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "title": "多语言编码（也是多语言文件名称，图片目录名称）"
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: '.schema.json',
+    title: 'i18n locale file',
+    type: 'object',
+    required: ['meta'],
+    properties: {
+        meta: {
+            type: 'object',
+            title: '多语言文本Meta信息',
+            required: ['code'],
+            properties: {
+                code: {
+                    type: 'string',
+                    title: '多语言编码（也是多语言文件名称，图片目录名称）',
+                },
+                name: {
+                    type: 'string',
+                    title: '多语言名称',
+                },
+                version: {
+                    type: 'string',
+                    title: '多语言版本',
+                },
+            },
+            additionalProperties: true,
         },
-        "name": {
-          "type": "string",
-          "title": "多语言名称"
-        },
-        "version": {
-          "type": "string",
-          "title": "多语言版本"
-        },
-        "dateFormat": {
-          "type": "string",
-          "title": "日期格式，默认为 YYYY-MM-DD"
-        },
-        "timeFormat": {
-          "type": "string",
-          "title": "时间格式，默认为 HH:mm:ss"
-        },
-        "datetimeFormat": {
-          "type": "string",
-          "title": "日期时间格式，默认为 YYYY-MM-DD HH:mm:ss"
-        }
-      },
-      "additionalProperties": true
-    }
-  },
-  "additionalProperties": true
+    },
+    additionalProperties: true,
 };
 function isJsonObject(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

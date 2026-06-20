@@ -28,7 +28,6 @@ i18n 模块用于统一管理语言数据、文本取值和图片路径映射。
 │   │   ├── I18nSetting.ts            # 多语言配置组件（可选，编辑器便利）
 │   │   └── I18nSprite.ts             # 图片本地化组件（Sprite）
 │   └── core
-│       ├── CCResources.ts            # 资源加载封装（json/spriteFrame）
 │       ├── DateFormatter.ts          # 日期格式化工具（纯 TS）
 │       ├── DefaultI18nManager.ts     # Null Object 实现（未绑定时兜底）
 │       ├── I18n.ts                   # i18n 静态门面（bind/unbind + Null Object 兜底）

@@ -58,7 +58,6 @@ uim/
   core/
     AudioManager.ts          音频管理器（全局单例，persistRootNode）
     Audios.ts                音频静态门面（pure）
-    CCResources.ts           资源加载工具（依赖 cc）
     DateFormatter.ts         日期格式化（pure，i18n 模块）
     DefaultAudioManager.ts   音频默认空实现（pure）
     DefaultSceneManager.ts   场景管理默认空实现（pure）

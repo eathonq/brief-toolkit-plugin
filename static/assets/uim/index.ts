@@ -20,8 +20,5 @@ export { SkinSetting } from './components/SkinSetting';
 // ──────────── 场景管理器（普通类，非 Component，应用启动时 init()）────────────
 export { SceneManager } from './core/SceneManager';
 
-// ──────────── Cocos 依赖的资源工具 ────────────
-export { CCResources as Resources } from './core/CCResources';
-
 // ──────────── 纯 TS API（ViewModel 可用，零 Cocos 依赖）────────────
 export * from './pure';

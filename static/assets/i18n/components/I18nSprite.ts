@@ -13,7 +13,6 @@
 
 import { _decorator, Component, Sprite, SpriteFrame } from "cc";
 import { EDITOR } from "cc/env";
-import { CCResources } from "../core/CCResources";
 import { I18nManager } from "../core/I18nManager";
 import { I18nEventType } from "../core/I18nEvent";
 
@@ -111,7 +110,7 @@ export class I18nSprite extends Component {
       return;
     }
 
-    CCResources.getSpriteFrame(imagePath).then((spriteFrame) => {
+    I18nManager.instance.loadImage(imagePath).then((spriteFrame) => {
       if (requestVersion !== this._resetVersion) return;
       this.setComponentValue(spriteFrame);
     });

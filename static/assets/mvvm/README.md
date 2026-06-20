@@ -92,7 +92,6 @@ mvvm/
 ├── core/
 │   ├── BaseViewModel.ts         # VM 生命周期基类
 │   ├── CCElement.ts             # UI 组件适配层
-│   ├── CCResources.ts           # 资源加载（bundle/远程/SpriteFrame）
 │   ├── Decorator.ts             # @vm/@model/@prop/@func/@event
 │   ├── DecoratorData.ts         # 装饰器元数据注册表
 │   ├── ErrorBoundary.ts         # try-catch 隔离

@@ -65,7 +65,7 @@ export class I18nSetting extends Component {
   @property
   private _assetPath = I18N_ASSET_PATH;
   @property({
-    tooltip: "多语言资源路径",
+    tooltip: "多语言 JSON 文件存放路径（仅用于加载语言配置文件，不影响图片路径）",
   })
   get assetPath() {
     return this._assetPath;

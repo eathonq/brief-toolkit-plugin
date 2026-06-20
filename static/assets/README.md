@@ -1,6 +1,6 @@
 # brief-toolkit
 
-> Cocos Creator 3.8.8 生产级游戏框架插件 — MVVM 数据绑定（含统一事件总线）、UI 视图管理、国际化、引导系统、本地存储，五模块零耦合按需取用。
+> Cocos Creator 3.8.8 生产级游戏框架插件 — 统一资源管理、MVVM 数据绑定（含统一事件总线）、UI 视图管理、国际化、引导系统、本地存储，六模块零耦合按需取用。
 
 [🇨🇳 中文说明](#功能大纲) · [📖 模块文档](#模块总览)
 
@@ -10,11 +10,50 @@
 
 | 模块 | 版本 | 定位 | 依赖 |
 | :--- | :---: | :--- | :--- |
+| [Common](#common-公共资源管理) | v1.1 | 统一资源加载 + AssetScope 生命周期管理 + 场景自动释放 | `cc` (SpriteFrame / JsonAsset / Prefab / AudioClip) |
 | [MVVM](#mvvm-数据绑定框架) | v1.2 | 生产级 MVVM 框架，装饰器 + 响应式 + 列表渲染 + 对象池 + 统一事件总线 | 纯 TS 层零 `cc` 依赖 |
 | [UIM](#uim-视图管理器) | v1.2 | 视图 / 消息框 / 提示框 / 场景切换 / 音频 / 皮肤 | 静态门面 + Null Object 容错 |
-| [i18n](#i18n-国际化) | v1.1 | 文本 + 图片本地化，事件驱动刷新，语言回退 | 静态门面 + 事件总线 |
+| [i18n](#i18n-国际化) | v1.1 | 文本 + 图片本地化，事件驱动刷新，语言回退 + ResourceScope 资源管理 | 静态门面 + 事件总线 + Common |
 | [Guide](#guide-引导系统) | v1.3 | 任务-步骤引导引擎，遮罩高亮 + 对话框 + 指示器 | 静态门面 + 状态机 |
 | [Storage](#storage-本地存储) | v1.0 | JSON 序列化封装，默认值回退，存储不可用时内存降级 | 零依赖，纯 TS |
+
+---
+
+## Common 公共资源管理
+
+**统一资源加载与生命周期管理：CCAssets 底层加载器 → AssetScope 作用域追踪 → AssetScopeManager 场景级自动管理 → AssetScopeMount 零代码接入。**
+
+### 四层架构
+
+| 层 | 类 | 职责 |
+| :--- | :--- | :--- |
+| **加载层** | `CCAssets` | 纯静态加载器：路径解析 + bundle 管理 + 远程缓存。无 UI 操作，无生命周期追踪 |
+| **作用域层** | `AssetScope` | 按实例追踪资源路径，`releaseAll()` 统一释放（依赖 Cocos ref-count 安全共享） |
+| **管理层** | `AssetScopeManager` | 全局单例 + scope 栈，`push/pop` 场景生命周期，`setNodeSprite` 内置去抖 |
+| **接入层** | `AssetScopeMount` | 拖到场景根节点，`onLoad` push / `onDestroy` pop，零代码 |
+
+### 使用模式
+
+**场景级自动管理**（推荐）：
+```ts
+// 1. 场景根节点挂 AssetScopeMount (scopeName = "battle")
+// 2. 组件中加载 — 自动追踪到当前场景 scope
+const sf = await AssetScopeManager.getSpriteFrame('db://game/textures/char/hero');
+AssetScopeManager.setNodeSprite(node, 'db://game/textures/ui/button');
+// 3. 场景销毁 → pop() → releaseAll() 自动释放
+```
+
+**模块级自管**（全局单例）：
+```ts
+// I18nManager / AudioManager 自管 AssetScope 实例
+const scope = new AssetScope('i18n_zh-CN');
+const json = await scope.getJsonAsset('i18n/zh-CN');
+scope.releaseAll(); // 切语言/销毁时统一释放
+```
+
+### 资源类型全覆盖
+
+`AssetScope` 和 `AssetScopeManager` 统一支持：`SpriteFrame` / `JsonAsset` / `Prefab` / `AudioClip`。路径追踪用 `Set<string>` 类型无关，`releaseAll()` 统一按路径释放。
 
 ---
 

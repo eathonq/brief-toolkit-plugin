@@ -8,19 +8,21 @@
  * @version v1.1.0
  *
  * @created 2026-03-15
- * @modified 2026-06-11
+ * @modified 2026-06-19
  */
 
 import { assetManager, ImageAsset, JsonAsset, SpriteFrame, Texture2D } from "cc";
 import { EDITOR } from "cc/env";
 import { II18nManager, I18nLabelMode } from "./II18nManager";
-import { CCResources } from "./CCResources";
+import { AssetScope } from "../../common/core/AssetScope";
 import { getI18nEditorSpriteUuidResolver } from "./I18nEditorBridge";
 import { I18nEventType } from "./I18nEvent";
 import { DateFormatter } from "./DateFormatter";
 import { __i18nBind } from "./I18n";
 
 const I18N_ASSET_PATH = "i18n";
+
+const ASSET_SCOPE_I18N = "__I18N__";
 
 export type LanguageMeta = {
   code: string;
@@ -68,6 +70,7 @@ export class I18nManager implements II18nManager {
   private _languageAsset: JsonAsset | null = null;
   private _languageMeta: LanguageMeta | null = null;
   private _languageMap: Map<string, string> = new Map<string, string>();
+  private _resourceScope: AssetScope = new AssetScope(ASSET_SCOPE_I18N);
 
   //#region 状态与回退
   private _isSwitching = false;
@@ -93,7 +96,7 @@ export class I18nManager implements II18nManager {
     if (this._fallbackLanguage === language) return;
 
     const languagePath = `${this._assetPath}/${language}`;
-    const asset = await CCResources.loadJsonAsset(languagePath);
+    const asset = await this._resourceScope.getJsonAsset(languagePath);
     if (!asset) {
       console.warn(`I18nManager: Failed to load fallback language at ${languagePath}`);
       return;
@@ -246,15 +249,14 @@ export class I18nManager implements II18nManager {
     try {
       // 尝试加载新语言资源
       const languagePath = `${this._assetPath}/${language}`;
-      const newAsset = await CCResources.loadJsonAsset(languagePath);
+      const newAsset = await this._resourceScope.getJsonAsset(languagePath);
       if (!newAsset) {
         throw new Error(`Failed to load language file at ${languagePath}`);
       }
 
-      // 新资源加载成功，释放旧资源
-      if (savedAsset) {
-        assetManager.releaseAsset(savedAsset);
-      }
+      // 旧语言资源（JSON + 图片）由 _resourceScope.releaseAll() 统一释放
+      this._resourceScope.releaseAll();
+      this._resourceScope = new AssetScope(`${ASSET_SCOPE_I18N}${language}`);
       this._languageAsset = newAsset;
       this.resetLanguage(); // 内部发射 LANGUAGE_SWITCHED 事件
     } catch (e) {
@@ -338,9 +340,12 @@ export class I18nManager implements II18nManager {
   }
 
   /**
-   * 获取多语言图片路径
+   * 获取多语言图片路径（纯透传，不做路径拼接）。
+   * 语言 JSON 中应填写完整资源路径（如 "db://game/textures/i18n/home_icon"），
+   * 由 CCAssets.parsePath() 统一解析，支持 db:// / 相对路径 / 远程 URL 等全部格式。
+   *
    * @param key 图片路径 key（支持点语法，如 "image.home"）
-   * @returns 多语言图片完整路径，如果未找到则返回空字符串
+   * @returns 多语言配置中的原始路径值，未找到则返回空字符串
    */
   image(key: string): string {
     // 一级：当前语言
@@ -351,7 +356,15 @@ export class I18nManager implements II18nManager {
       path = this._fallbackMap.get(key);
     }
 
-    return `${this._assetPath}/${this._languageMeta?.code}/${path ?? ''}`;
+    return path ?? '';
+  }
+
+  /**
+   * 加载多语言图片 SpriteFrame（委托 AssetScope 追踪，切换语言时自动释放）。
+   * @param path 完整资源路径（如 "db://game/textures/i18n/home_icon"）
+   */
+  async loadImage(path: string): Promise<SpriteFrame | null> {
+    return this._resourceScope.getSpriteFrame(path);
   }
 
   private async loadEditorSpriteFrameByUuid(uuid: string): Promise<SpriteFrame | null> {

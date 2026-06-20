@@ -13,7 +13,7 @@
 
 import { _decorator, Component, Node, Sprite } from 'cc';
 import { SkinItemDef } from '../core/ISkinManager';
-import { CCResources } from '../core/CCResources';
+import { AssetScopeManager } from '../../common/core/AssetScopeManager';
 import { Skins } from '../core/Skins';
 import { SkinManager } from '../core/SkinManager';
 
@@ -72,7 +72,7 @@ export class SkinSprite extends Component {
       return;
     }
 
-    CCResources.getSpriteFrame(spritePath).then((spriteFrame) => {
+    AssetScopeManager.getSpriteFrame(spritePath).then((spriteFrame) => {
       if (!spriteFrame) return;
       sprite.spriteFrame = spriteFrame;
     });

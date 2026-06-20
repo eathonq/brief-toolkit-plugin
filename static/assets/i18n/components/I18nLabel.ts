@@ -103,16 +103,15 @@ export class I18nLabel extends Component {
   //#endregion
 
   protected onLoad() {
+    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
     if (EDITOR) {
       this.checkEditorComponent();
       return;
     }
-    I18nManager.instance.on(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
     this.resetValue();
   }
 
   protected onDestroy() {
-    if (EDITOR) return;
     I18nManager.instance.off(I18nEventType.LANGUAGE_SWITCHED, this._onLanguageSwitched.bind(this));
   }
 
