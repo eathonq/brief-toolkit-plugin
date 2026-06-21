@@ -26,7 +26,7 @@
  * @created 2026-06-19
  */
 
-import { SpriteFrame, JsonAsset, Prefab, AudioClip, Node, Sprite } from 'cc';
+import { SpriteFrame, JsonAsset, Prefab, AudioClip, Node, Sprite, Asset } from 'cc';
 import { AssetScope } from './AssetScope';
 
 export class AssetScopeManager {
@@ -94,35 +94,63 @@ export class AssetScopeManager {
   // ────────── 组件统一 API ──────────
 
   /**
-   * 获取 SpriteFrame（异步），自动追踪到当前 scope。
+   * 通用资源加载（异步）。
+   * 根据路径自动解析 bundle、加载本地或远程资源。
+   * @param raw 资源路径，支持本地 / db:// / 远程 URL
+   * @param type 可选：Cocos Asset 类型构造函数（如 Prefab, AudioClip 等），不传则不做运行时类型校验
+   * @returns 加载成功返回对应类型的资产实例，失败返回 null
+   * @example
+   *   CCAssets.loadAsset<Prefab>('db://game/prefab/MyPrefab', Prefab);
+   *   CCAssets.loadAsset<AudioClip>('audio/bgm', AudioClip);
+   *   CCAssets.loadAsset<SpriteFrame>('image/icon', SpriteFrame);
    */
-  static async getSpriteFrame(path: string): Promise<SpriteFrame | null> {
+  static async loadAsset<T extends Asset>(raw: string, type?: new (...args: any[]) => T): Promise<T | null> {
     this._warnIfNoMount();
-    return this.current.getSpriteFrame(path);
+    return this.current.loadAsset(raw, type);
   }
 
   /**
-   * 获取 JsonAsset（异步），自动追踪到当前 scope。
+   * 获取 SpriteFrame（异步），加载成功后自动追踪路径。
+   * 路径命中 Cocos 引擎缓存时无 IO 开销。
+   *
+   * @param raw 资源路径（完整 db:// 格式）
    */
-  static async getJsonAsset(path: string, bundleName?: string): Promise<JsonAsset | null> {
+  static async getSpriteFrame(raw: string): Promise<SpriteFrame | null> {
     this._warnIfNoMount();
-    return this.current.getJsonAsset(path, bundleName);
+    return this.current.getSpriteFrame(raw);
   }
 
   /**
-   * 获取 Prefab（异步），自动追踪到当前 scope。
+   * 获取 JsonAsset（异步），加载成功后自动追踪路径。
+   * 路径命中 Cocos 引擎缓存时无 IO 开销。
+   *
+   * @param raw 资源路径（完整 db:// 格式）
    */
-  static async getPrefab(path: string): Promise<Prefab | null> {
+  static async getJsonAsset(raw: string): Promise<JsonAsset | null> {
     this._warnIfNoMount();
-    return this.current.getPrefab(path);
+    return this.current.getJsonAsset(raw);
   }
 
   /**
-   * 获取 AudioClip（异步），自动追踪到当前 scope。
+   * 获取 Prefab（异步），加载成功后自动追踪路径。
+   * 路径命中 Cocos 引擎缓存时无 IO 开销。
+   *
+   * @param raw 资源路径（完整 db:// 格式）
    */
-  static async getAudioClip(path: string): Promise<AudioClip | null> {
+  static async getPrefab(raw: string): Promise<Prefab | null> {
     this._warnIfNoMount();
-    return this.current.getAudioClip(path);
+    return this.current.getPrefab(raw);
+  }
+
+  /**
+   * 获取 AudioClip（异步），加载成功后自动追踪路径。
+   * 路径命中 Cocos 引擎缓存时无 IO 开销。
+   *
+   * @param raw 资源路径（完整 db:// 格式）
+   */
+  static async getAudioClip(raw: string): Promise<AudioClip | null> {
+    this._warnIfNoMount();
+    return this.current.getAudioClip(raw);
   }
 
   /**
@@ -131,15 +159,15 @@ export class AssetScopeManager {
    * 若传入 Node 且无 Sprite 组件 → warn 并跳过。
    *
    * @param target Node 或 Sprite 组件实例
-   * @param path 资源路径
+   * @param raw 资源路径
    */
-  static setNodeSprite(target: Node | Sprite, path: string): void {
+  static setNodeSprite(target: Node | Sprite, raw: string): void {
     this._warnIfNoMount();
     const key = target as unknown as object;
     const requestId = ++this._requestId;
     this._targetRequestMap.set(key, requestId);
 
-    this.current.getSpriteFrame(path).then((spriteFrame) => {
+    this.current.getSpriteFrame(raw).then((spriteFrame) => {
       if (!spriteFrame) return;
       if (this._targetRequestMap.get(key) !== requestId) return;
       if ((target as any).isValid === false) return;
