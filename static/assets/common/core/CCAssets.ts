@@ -10,13 +10,13 @@
  *
  * @author eathonq
  * @license MIT
- * @version v1.1.0
+ * @version v1.2.0
  *
- * @created 2026-06-19
+ * @created 2026-06-21
  */
 
 import {
-  AssetManager, SpriteFrame, Texture2D,
+  Asset, AssetManager, SpriteFrame, Texture2D,
   assetManager, resources, JsonAsset, AudioClip,
   Prefab, TextAsset, ImageAsset
 } from 'cc';
@@ -26,7 +26,6 @@ export type SpriteLoadFormate = "spriteFrame" | "texture";
 
 /** 统一资源管理类 —— 静态方法，提供全局资源加载/释放能力 */
 export class CCAssets {
-  private static _currentBundle: string = _res_;
   private static _bundleMap: Map<string, AssetManager.Bundle> = new Map<string, AssetManager.Bundle>([
     [_res_, resources]
   ]);
@@ -101,32 +100,32 @@ export class CCAssets {
   // Bundle 管理
   // ═══════════════════════════════════════════════════════════
 
-  private static loadBundle(bundle: string, url?: string, version?: string): Promise<AssetManager.Bundle | null> {
-    const loaded = this._bundleMap.get(bundle);
+  private static loadBundle(name: string, url?: string, version?: string): Promise<AssetManager.Bundle | null> {
+    const loaded = this._bundleMap.get(name);
     if (loaded) {
       return Promise.resolve(loaded);
     }
 
-    const loading = this._bundleLoadingMap.get(bundle);
+    const loading = this._bundleLoadingMap.get(name);
     if (loading) {
       return loading;
     }
 
     const promise = new Promise<AssetManager.Bundle | null>((resolve) => {
       const option = version ? { version } : undefined;
-      assetManager.loadBundle(url ?? bundle, option, (err, _bundle) => {
-        this._bundleLoadingMap.delete(bundle);
+      assetManager.loadBundle(url ?? name, option, (err, _bundle) => {
+        this._bundleLoadingMap.delete(name);
         if (err || !_bundle) {
-          console.warn(`[CCAssets] loadBundle failed: ${bundle}`, err);
+          console.warn(`[CCAssets] loadBundle failed: ${name}`, err);
           resolve(null);
           return;
         }
-        this._bundleMap.set(bundle, _bundle);
+        this._bundleMap.set(name, _bundle);
         resolve(_bundle);
       });
     });
 
-    this._bundleLoadingMap.set(bundle, promise);
+    this._bundleLoadingMap.set(name, promise);
     return promise;
   }
 
@@ -135,11 +134,11 @@ export class CCAssets {
   // ═══════════════════════════════════════════════════════════
 
   private static async loadSpriteFrame(
-    path: string, bundleName?: string, formate: SpriteLoadFormate = 'spriteFrame',
+    bundleName: string, path: string, formate: SpriteLoadFormate = 'spriteFrame',
   ): Promise<SpriteFrame | null> {
     if (!path || path.trim() === '') return null;
 
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
+    const bundle = await this.loadBundle(bundleName ?? _res_);
     if (!bundle) return null;
 
     if (formate === 'spriteFrame') {
@@ -193,66 +192,13 @@ export class CCAssets {
     return promise;
   }
 
-  private static async loadByPath(path: string, formate: SpriteLoadFormate): Promise<SpriteFrame | null> {
-    const parsed = this.parsePath(path);
-    if (!parsed.path) return null;
-    if (parsed.isRemote) {
-      return this.loadRemoteSpriteFrame(parsed.path);
-    }
-    return this.loadSpriteFrame(parsed.path, parsed.bundle, formate);
-  }
-
-  private static async loadPrefabInternal(path: string, bundleName?: string): Promise<Prefab | null> {
-    if (!path || path.trim() === '') return null;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
-    if (!bundle) return null;
-    return new Promise<Prefab | null>((resolve) => {
-      bundle.load<Prefab>(path, (_err: any, prefab: Prefab) => {
-        resolve(prefab ?? null);
-      });
-    });
-  }
-
-  private static async loadJsonInternal<T = any>(path: string, bundleName?: string): Promise<T | null> {
-    if (!path || path.trim() === '') return null;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
-    if (!bundle) return null;
-    return new Promise<T | null>((resolve) => {
-      bundle.load(path, (_err: any, res: JsonAsset) => {
-        resolve(res?.json as T ?? null);
-      });
-    });
-  }
-
-  private static async loadAudioClipInternal(path: string, bundleName?: string): Promise<AudioClip | null> {
-    if (!path || path.trim() === '') return null;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
-    if (!bundle) return null;
-    return new Promise<AudioClip | null>((resolve) => {
-      bundle.load(path, (_err: any, res: AudioClip) => {
-        resolve(res ?? null);
-      });
-    });
-  }
-
-  private static async loadTextInternal(path: string, bundleName?: string): Promise<string | null> {
-    if (!path || path.trim() === '') return null;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
-    if (!bundle) return null;
-    return new Promise<string | null>((resolve) => {
-      bundle.load(path, (_err: any, res: TextAsset) => {
-        resolve(res?.text ?? null);
-      });
-    });
-  }
-
   // ═══════════════════════════════════════════════════════════
   // 释放
   // ═══════════════════════════════════════════════════════════
 
-  private static async releaseLocal(path: string, bundleName?: string): Promise<void> {
+  private static async releaseWithBundle(bundleName: string, path: string): Promise<void> {
     if (!path || path.trim() === '') return;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
+    const bundle = await this.loadBundle(bundleName ?? _res_);
     if (!bundle) return;
     bundle.release(path);
   }
@@ -262,8 +208,50 @@ export class CCAssets {
   // ═══════════════════════════════════════════════════════════
 
   /**
+   * 通用资源加载（异步）。
+   * 根据路径自动解析 bundle、加载本地或远程资源。
+   * @param raw 资源路径，支持本地 / db:// / 远程 URL
+   * @param type 可选：Cocos Asset 类型构造函数（如 Prefab, AudioClip 等），不传则不做运行时类型校验
+   * @returns 加载成功返回对应类型的资产实例，失败返回 null
+   * @example
+   *   CCAssets.loadAsset<Prefab>('db://game/prefab/MyPrefab', Prefab);
+   *   CCAssets.loadAsset<AudioClip>('audio/bgm', AudioClip);
+   *   CCAssets.loadAsset<SpriteFrame>('image/icon', SpriteFrame);
+   */
+  static async loadAsset<T extends Asset = Asset>(
+    raw: string,
+    type?: { new(...args: any[]): T },
+  ): Promise<T | null> {
+    const parsed = this.parsePath(raw);
+    if (!parsed.path) return null;
+
+    if (parsed.isRemote) {
+      return new Promise<T | null>((resolve) => {
+        assetManager.loadRemote(parsed.path, (err: any, asset: any) => {
+          resolve(err ? null : (asset as T ?? null));
+        });
+      });
+    }
+
+    const bundle = await this.loadBundle(parsed.bundle ?? _res_);
+    if (!bundle) return null;
+
+    return new Promise<T | null>((resolve) => {
+      if (type) {
+        bundle.load(parsed.path, type, (err: any, asset: T) => {
+          resolve(err ? null : asset);
+        });
+      } else {
+        bundle.load(parsed.path, (err: any, asset: T) => {
+          resolve(err ? null : asset);
+        });
+      }
+    });
+  }
+
+  /**
    * 获取 SpriteFrame（异步）。
-   * @param path 资源路径，支持本地 / db:// / 远程 URL
+   * @param raw 资源路径，支持本地 / db:// / 远程 URL
    * @param formate 精灵帧格式
    * @example
    *   CCAssets.getSpriteFrame('image/icon');
@@ -271,75 +259,66 @@ export class CCAssets {
    *   CCAssets.getSpriteFrame('https://cdn.example.com/icon.png');
    */
   static async getSpriteFrame(
-    path: string, formate: SpriteLoadFormate = 'spriteFrame',
+    raw: string, formate: SpriteLoadFormate = 'spriteFrame',
   ): Promise<SpriteFrame | null> {
-    return this.loadByPath(path, formate);
+    const parsed = this.parsePath(raw);
+    if (!parsed.path) return null;
+    if (parsed.isRemote) {
+      return this.loadRemoteSpriteFrame(parsed.path);
+    }
+    return this.loadSpriteFrame(parsed.bundle, parsed.path, formate);
   }
 
   /**
    * 获取预制体。
-   * @param path 预制体路径（不包含后缀）
+   * @param raw 预制体路径（不包含后缀）
    */
-  static async getPrefab(path: string): Promise<Prefab | null> {
-    const parsed = this.parsePath(path);
-    if (parsed.isRemote) return null;
-    return this.loadPrefabInternal(parsed.path, parsed.bundle);
+  static async getPrefab(raw: string): Promise<Prefab | null> {
+    return this.loadAsset<Prefab>(raw, Prefab);
   }
 
   /**
    * 获取 JsonAsset（返回原始资产对象，调用方需自行管理释放）。
-   * @param path JSON 路径（不包含后缀）
-   * @param bundleName 可选 bundle 名
+   * @param raw JSON 路径（不包含后缀）
    */
-  static async getJsonAsset(path: string, bundleName?: string): Promise<JsonAsset | null> {
-    if (!path || path.trim() === '') return null;
-    const bundle = await this.loadBundle(bundleName ?? this._currentBundle);
-    if (!bundle) return null;
-    return new Promise<JsonAsset | null>((resolve) => {
-      bundle.load(path, JsonAsset, (err: any, asset: JsonAsset) => {
-        resolve(err || !asset ? null : asset);
-      });
-    });
+  static async getJsonAsset(raw: string): Promise<JsonAsset | null> {
+    return this.loadAsset<JsonAsset>(raw, JsonAsset);
   }
 
   /**
    * 获取 JSON 数据。
-   * @param path JSON 路径（不包含后缀）
+   * @param raw JSON 路径（不包含后缀）
    */
-  static async getJson<T = any>(path: string): Promise<T | null> {
-    const parsed = this.parsePath(path);
-    if (parsed.isRemote) return null;
-    return this.loadJsonInternal<T>(parsed.path, parsed.bundle);
+  static async getJson<T = any>(raw: string): Promise<T | null> {
+    const asset = await this.loadAsset<JsonAsset>(raw, JsonAsset);
+    return (asset?.json as T) ?? null;
   }
 
   /**
    * 获取音频剪辑。
-   * @param path 音频路径（不包含后缀）
+   * @param raw 音频路径（不包含后缀）
    */
-  static async getAudioClip(path: string): Promise<AudioClip | null> {
-    const parsed = this.parsePath(path);
-    if (parsed.isRemote) return null;
-    return this.loadAudioClipInternal(parsed.path, parsed.bundle);
+  static async getAudioClip(raw: string): Promise<AudioClip | null> {
+    return this.loadAsset<AudioClip>(raw, AudioClip);
   }
 
   /**
    * 获取文本内容。
-   * @param path 文本路径（不包含后缀）
+   * @param raw 文本路径（不包含后缀）
    */
-  static async getText(path: string): Promise<string | null> {
-    const parsed = this.parsePath(path);
-    if (parsed.isRemote) return null;
-    return this.loadTextInternal(parsed.path, parsed.bundle);
+  static async getText(raw: string): Promise<string | null> {
+    const asset = await this.loadAsset<TextAsset>(raw, TextAsset);
+    return asset?.text ?? null;
   }
 
   /**
    * 释放本地资源（调用 bundle.release，refCount--）。
-   * @param path 资源路径
+   * @param raw 资源路径
    */
-  static async releasePath(path: string): Promise<void> {
-    const parsed = this.parsePath(path);
+  static async releasePath(raw: string): Promise<void> {
+    const parsed = this.parsePath(raw);
     if (parsed.isRemote) return;
-    return this.releaseLocal(parsed.path, parsed.bundle);
+    return this.releaseWithBundle(parsed.bundle, parsed.path);
   }
 
   /**

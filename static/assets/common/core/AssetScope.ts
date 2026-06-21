@@ -28,7 +28,7 @@
  * @created 2026-06-19
  */
 
-import { SpriteFrame, JsonAsset, Prefab, AudioClip } from 'cc';
+import { SpriteFrame, JsonAsset, Prefab, AudioClip, Asset } from 'cc';
 import { CCAssets } from './CCAssets';
 
 /** 资源作用域 */
@@ -37,7 +37,7 @@ export class AssetScope {
   private _name: string;
 
   /** 本 Scope 追踪的所有资源路径（供 releaseAll 使用） */
-  private _paths = new Set<string>();
+  private _raws = new Set<string>();
 
   constructor(name: string) {
     this._name = name;
@@ -47,20 +47,39 @@ export class AssetScope {
   get name(): string { return this._name; }
 
   /** 已追踪的资源路径数量 */
-  get pathCount(): number { return this._paths.size; }
+  get rawCount(): number { return this._raws.size; }
 
   // ────────── 加载 / 追踪 ──────────
+
+  /**
+   * 通用资源加载（异步）。
+   * 根据路径自动解析 bundle、加载本地或远程资源。
+   * @param raw 资源路径，支持本地 / db:// / 远程 URL
+   * @param type 可选：Cocos Asset 类型构造函数（如 Prefab, AudioClip 等），不传则不做运行时类型校验
+   * @returns 加载成功返回对应类型的资产实例，失败返回 null
+   * @example
+   *   CCAssets.loadAsset<Prefab>('db://game/prefab/MyPrefab', Prefab);
+   *   CCAssets.loadAsset<AudioClip>('audio/bgm', AudioClip);
+   *   CCAssets.loadAsset<SpriteFrame>('image/icon', SpriteFrame);
+   */
+  async loadAsset<T extends Asset = Asset>(raw: string, type?: { new(...args: any[]): T }): Promise<T | null> {
+    const asset = await CCAssets.loadAsset(raw, type);
+    if (asset) {
+      this._raws.add(raw);
+    }
+    return asset;
+  }
 
   /**
    * 获取 SpriteFrame（异步），加载成功后自动追踪路径。
    * 路径命中 Cocos 引擎缓存时无 IO 开销。
    *
-   * @param path 资源路径（完整 db:// 格式）
+   * @param raw 资源路径（完整 db:// 格式）
    */
-  async getSpriteFrame(path: string): Promise<SpriteFrame | null> {
-    const sf = await CCAssets.getSpriteFrame(path);
+  async getSpriteFrame(raw: string): Promise<SpriteFrame | null> {
+    const sf = await CCAssets.getSpriteFrame(raw);
     if (sf) {
-      this._paths.add(path);
+      this._raws.add(raw);
     }
     return sf;
   }
@@ -69,38 +88,36 @@ export class AssetScope {
    * 获取 JsonAsset（异步），加载成功后自动追踪路径。
    * 切换 scope 时由 releaseAll() 统一释放，无需手动 releaseAsset。
    *
-   * @param path 资源路径
-   * @param bundleName 可选 bundle 名
+   * @param raw 资源路径
    */
-  async getJsonAsset(path: string, bundleName?: string): Promise<JsonAsset | null> {
-    const asset = await CCAssets.getJsonAsset(path, bundleName);
+  async getJsonAsset(raw: string): Promise<JsonAsset | null> {
+    const asset = await CCAssets.getJsonAsset(raw);
     if (asset) {
-      const trackPath = bundleName ? `db://${bundleName}/${path}` : path;
-      this._paths.add(trackPath);
+      this._raws.add(raw);
     }
     return asset;
   }
 
   /**
    * 获取 Prefab（异步），加载成功后自动追踪路径。
-   * @param path 预制体路径（完整 db:// 格式）
+   * @param raw 预制体路径（完整 db:// 格式）
    */
-  async getPrefab(path: string): Promise<Prefab | null> {
-    const prefab = await CCAssets.getPrefab(path);
+  async getPrefab(raw: string): Promise<Prefab | null> {
+    const prefab = await CCAssets.getPrefab(raw);
     if (prefab) {
-      this._paths.add(path);
+      this._raws.add(raw);
     }
     return prefab;
   }
 
   /**
    * 获取 AudioClip（异步），加载成功后自动追踪路径。
-   * @param path 音频路径（完整 db:// 格式）
+   * @param raw 音频路径（完整 db:// 格式）
    */
-  async getAudioClip(path: string): Promise<AudioClip | null> {
-    const clip = await CCAssets.getAudioClip(path);
+  async getAudioClip(raw: string): Promise<AudioClip | null> {
+    const clip = await CCAssets.getAudioClip(raw);
     if (clip) {
-      this._paths.add(path);
+      this._raws.add(raw);
     }
     return clip;
   }
@@ -109,10 +126,10 @@ export class AssetScope {
    * 手动追踪外部加载的资源路径。
    * 用于已在别处通过 CCAssets 加载、但需要纳入本 Scope 统一释放的资源。
    *
-   * @param path 资源路径
+   * @param raw 资源路径
    */
-  track(path: string): void {
-    this._paths.add(path);
+  track(raw: string): void {
+    this._raws.add(raw);
   }
 
   // ────────── 释放 ──────────
@@ -125,10 +142,10 @@ export class AssetScope {
    * 释放后清空内部追踪（重复调用安全）。
    */
   releaseAll(): void {
-    for (const path of this._paths) {
-      CCAssets.releasePath(path);
+    for (const raw of this._raws) {
+      CCAssets.releasePath(raw);
     }
-    this._paths.clear();
+    this._raws.clear();
   }
 
   // ────────── 调试 ──────────
@@ -139,8 +156,8 @@ export class AssetScope {
   debug(): { name: string; pathCount: number; paths: string[] } {
     return {
       name: this._name,
-      pathCount: this._paths.size,
-      paths: [...this._paths].sort(),
+      pathCount: this._raws.size,
+      paths: [...this._raws].sort(),
     };
   }
 }
