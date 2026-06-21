@@ -1,7 +1,8 @@
 /**
  * SceneManager.ts — 场景管理器（普通类，非 Component）
- * @description 实现 ISceneManager，封装 director.loadScene / preloadScene，
- *              调度 Scenes.onBeforeLeave / onAfterEnter 生命周期钩子。
+ * @description 实现 ISceneManager，封装 director.loadScene / preloadScene。
+ *              场景加载完成后通过 director.getScene().emit 向场景内组件广播，
+ *              同时通过 EventBus.emit 通知框架外全局观察者。
  *              通过 SceneManager.init() 在应用启动时初始化一次即可，无需挂载节点。
  *
  * @important 调用 director，不属于 pure.ts（有 from 'cc' 依赖）。
@@ -20,8 +21,9 @@
  */
 
 import { director } from 'cc';
-import { ISceneManager, SceneLifecycleData } from './ISceneManager';
-import { Scenes, __scenesBind } from './Scenes';
+import { ISceneManager, SceneEventData, SceneEvent } from './ISceneManager';
+import { __scenesBind } from './Scenes';
+import { EventBus } from '../../common/core/EventBus';
 
 export class SceneManager implements ISceneManager {
   private static _instance: SceneManager | null = null;
@@ -41,14 +43,7 @@ export class SceneManager implements ISceneManager {
 
   async loadScene(name: string, data?: any): Promise<void> {
     const fromScene = director.getScene()?.name ?? '';
-    const info: SceneLifecycleData = { fromScene, toScene: name, data };
-
-    // 依次执行离开钩子（异常隔离，单个回调失败不影响后续）
-    for (const handler of Scenes.onBeforeLeave) {
-      try { await handler(info); } catch (e) {
-        console.error(`[Scenes] onBeforeLeave 回调异常:`, e);
-      }
-    }
+    const info: SceneEventData = { fromScene, toScene: name, data };
 
     return new Promise<void>((resolve, reject) => {
       director.loadScene(name, (err) => {
@@ -56,8 +51,12 @@ export class SceneManager implements ISceneManager {
           reject(err);
           return;
         }
-        // 场景加载完成后依次执行进入钩子
-        this._runAfterEnter(info).then(resolve).catch(reject);
+        // node.emit → 场景内组件（节点销毁自动清理）
+        // EventBus.emit → 框架外全局观察者（persist 节点 / 非 Cocos 上下文）
+        const newScene = director.getScene();
+        newScene.emit(SceneEvent, info);
+        EventBus.emit(SceneEvent, info);
+        resolve();
       });
     });
   }
@@ -71,17 +70,4 @@ export class SceneManager implements ISceneManager {
     });
   }
 
-  getCurrentSceneName(): string {
-    return director.getScene()?.name ?? '';
-  }
-
-  // ── private ──
-
-  private async _runAfterEnter(info: SceneLifecycleData): Promise<void> {
-    for (const handler of Scenes.onAfterEnter) {
-      try { await handler(info); } catch (e) {
-        console.error(`[Scenes] onAfterEnter 回调异常:`, e);
-      }
-    }
-  }
 }

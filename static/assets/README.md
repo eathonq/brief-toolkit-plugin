@@ -129,7 +129,7 @@ EventBus.offByToken(token);
 | **视图** | `Views` | `ViewNavigator` | `showView` / `showAsReplace` / `backView` / `isTopView` / `ViewEvent` 生命周期事件（Show/Hide/Close/Data） |
 | **消息框** | `MessageBox` | — | `show(title, content, buttons)` 返回 Promise `<MessageBoxResult>`（Yes/No/Cancel...） |
 | **提示框** | `Tooltip` | — | `show(text, duration)` 自动消失 + 多实例管理（`TooltipMultiple`） |
-| **场景** | `Scenes` | `SceneManager` | `loadScene` / `onBeforeLeave` 生命周期钩子 / `SceneInfo` 数据传递 |
+| **场景** | `Scenes` | `SceneManager` | `loadScene` / EventBus `SCENE_EVENT` 事件 / `SceneEventData` 数据传递 |
 | **音频** | `Audios` | `AudioManager` | `playMusic` / `playOneShot` / `stop` / `pause` / 音量 & 开关控制 |
 | **皮肤** | `Skins` | `SkinManager` | `switchTheme` / `getSkinItem` / `SkinSprite` 自动响应切换 / 事件驱动精确刷新（O(活跃数)） |
 

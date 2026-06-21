@@ -136,9 +136,12 @@ const result = await MessageBox.show('确认删除？', '警告', MessageBoxButt
 // 提示框
 Tooltip.show('操作成功', 2);
 
-// 场景切换
-Scenes.onBeforeLeave.push(async (info) => {
-    console.log(`Leaving ${info.fromScene} → ${info.toScene}`);
+// 场景切换（通过场景根节点 Node.emit 订阅进入事件，与 ViewEvent 一致）
+import { SceneEvent } from 'db://assets/brief-toolkit/uim/pure';
+
+// 组件 onLoad 中订阅，场景销毁时 Cocos 引擎自动清理
+director.getScene().on(SceneEvent, (payload) => {
+    console.log(`Entered ${payload.toScene} from ${payload.fromScene}`);
 });
 await Scenes.loadScene('BattleScene', { level: 5 });
 

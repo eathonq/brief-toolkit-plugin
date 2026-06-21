@@ -1,7 +1,7 @@
 /**
  * Scenes.ts — 场景管理静态类
  * @description 提供全局场景切换入口，ViewModel 中直接调用。
- *              生命周期钩子通过 onBeforeLeave / onAfterEnter 数组注册。
+ *              场景进入事件通过 EventBus 订阅（EventBus.on(SceneEvent, ...)）。
  *
  * @author eathonq
  * @license MIT
@@ -10,10 +10,8 @@
  * @created 2026-06-11
  */
 
-import { ISceneManager, SceneLifecycleHandler } from './ISceneManager';
+import { ISceneManager } from './ISceneManager';
 import { DefaultSceneManager } from './DefaultSceneManager';
-
-export type { SceneLifecycleHandler };
 
 /**
  * 模块级私有状态。
@@ -41,14 +39,6 @@ export function __scenesUnbind(manager: ISceneManager): void {
 
 /** 场景管理静态类 */
 export class Scenes {
-  // ── 生命周期钩子 ──
-
-  /** 场景即将离开前回调列表（按注册顺序依次 await 执行） */
-  static onBeforeLeave: SceneLifecycleHandler[] = [];
-
-  /** 场景加载完成后回调列表（按注册顺序依次 await 执行） */
-  static onAfterEnter: SceneLifecycleHandler[] = [];
-
   /** 获取当前 ISceneManager，未绑定时自动回退 DefaultSceneManager */
   static get current(): ISceneManager {
     return _currentSceneManager ?? DefaultSceneManager.instance;
@@ -71,10 +61,5 @@ export class Scenes {
    */
   static async preloadScene(name: string): Promise<void> {
     return Scenes.current.preloadScene(name);
-  }
-
-  /** 获取当前活动场景名称 */
-  static getCurrentSceneName(): string {
-    return Scenes.current.getCurrentSceneName();
   }
 }

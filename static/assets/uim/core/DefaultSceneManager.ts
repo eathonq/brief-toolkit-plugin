@@ -26,8 +26,4 @@ export class DefaultSceneManager implements ISceneManager {
   async preloadScene(name: string): Promise<void> {
     this._log('preloadScene', name);
   }
-
-  getCurrentSceneName(): string {
-    return '';
-  }
 }

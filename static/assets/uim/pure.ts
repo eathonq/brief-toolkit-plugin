@@ -42,8 +42,8 @@ export type {
 
 // ──────────── 场景管理 ────────────
 export { Scenes } from './core/Scenes';
-export type { SceneLifecycleHandler } from './core/Scenes';
-export type { ISceneManager, SceneLifecycleData } from './core/ISceneManager';
+export type { ISceneManager, SceneEventData as SceneEventData } from './core/ISceneManager';
+export { SceneEvent } from './core/ISceneManager';
 
 // ──────────── 默认实现 ────────────
 export { DefaultViewManager } from './core/DefaultViewManager';
