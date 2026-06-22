@@ -13,9 +13,10 @@
  */
 
 import { _decorator, Component, Node, Enum, EventTouch, Label, Button } from "cc";
-import { MessageBoxButtons, MessageBoxData, MessageBoxResult } from "../core/IViewManager";
+import { MessageBoxButtons, MessageBoxData, MessageBoxResult, ViewSortIndex } from "../core/IViewManager";
 import { VIEW_TYPE_TOOLTIP, ViewBase } from "./ViewBase";
 import { ViewEvent, ViewState, ViewType } from "../core/IViewManager";
+import { VIEW_SORT_TOOLTIP } from "./ViewSort";
 
 const { ccclass, help, menu, property } = _decorator;
 
@@ -24,6 +25,13 @@ const { ccclass, help, menu, property } = _decorator;
 @help('https://vangagh.gitbook.io/brief-toolkit/uim/messageboxbase')
 @menu('BriefToolkit/UIM/MessageBoxBase')
 export class MessageBoxBase extends ViewBase {
+  @property({
+    type: Enum(ViewSortIndex),
+    tooltip: VIEW_SORT_TOOLTIP,
+    override: true,
+  })
+  sortIndex: ViewSortIndex = ViewSortIndex.MessageBox;
+
   @property({
     type: Enum(ViewType),
     tooltip: VIEW_TYPE_TOOLTIP,

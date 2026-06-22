@@ -14,8 +14,9 @@
 
 import { _decorator, Component, Node, Enum, EventTouch, Label, Button, UITransform } from "cc";
 import { VIEW_TYPE_TOOLTIP, ViewBase } from "./ViewBase";
-import { ViewEvent, ViewState, ViewType } from "../core/IViewManager";
+import { ViewEvent, ViewState, ViewType, ViewSortIndex } from "../core/IViewManager";
 import { TooltipData } from "../core/IViewManager";
+import { VIEW_SORT_TOOLTIP } from "./ViewSort";
 
 const { ccclass, help, menu, property } = _decorator;
 
@@ -24,6 +25,13 @@ const { ccclass, help, menu, property } = _decorator;
 @help('https://vangagh.gitbook.io/brief-toolkit/uim/tooltipbase')
 @menu('BriefToolkit/UIM/TooltipBase')
 export class TooltipBase extends ViewBase {
+  @property({
+    type: Enum(ViewSortIndex),
+    tooltip: VIEW_SORT_TOOLTIP,
+    override: true,
+  })
+  sortIndex: ViewSortIndex = ViewSortIndex.Tooltip;
+
   @property({
     type: Enum(ViewType),
     tooltip: VIEW_TYPE_TOOLTIP,

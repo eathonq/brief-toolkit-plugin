@@ -16,7 +16,7 @@
 import { _decorator, Component, Node, Enum, EventTouch, Label } from "cc";
 import { EDITOR } from "cc/env";
 import { ViewSortIndex, ViewType } from "../core/IViewManager";
-import { ViewSort } from "./ViewSort";
+import { ViewSort, VIEW_SORT_TOOLTIP } from "./ViewSort";
 
 const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 
@@ -32,6 +32,13 @@ export const VIEW_TYPE_TOOLTIP =
 @executeInEditMode
 @menu('BriefToolkit/UIM/ViewBase')
 export class ViewBase extends ViewSort {
+  @property({
+    type: Enum(ViewSortIndex),
+    tooltip: VIEW_SORT_TOOLTIP,
+    override: true,
+  })
+  sortIndex: ViewSortIndex = ViewSortIndex.View;
+
   @property({ tooltip: "视图名称" })
   viewName: string = "";
 
@@ -66,21 +73,6 @@ export class ViewBase extends ViewSort {
     if (EDITOR) {
       this._checkEditorComponent();
       return;
-    }
-
-    switch (this.viewType) {
-      case ViewType.View:
-        this.sortIndex = ViewSortIndex.View;
-        break;
-      case ViewType.MessageBox:
-        this.sortIndex = ViewSortIndex.MessageBox;
-        break;
-      case ViewType.Tooltip:
-        this.sortIndex = ViewSortIndex.Tooltip;
-        break;
-      default:
-        this.sortIndex = ViewSortIndex.View;
-        break;
     }
   }
 
