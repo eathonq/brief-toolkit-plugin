@@ -54,7 +54,7 @@ function toLanguageMeta(obj: any): LanguageMeta | null {
  */
 export class I18nManager implements II18nManager {
   //#region  单例
-  private static _instance: I18nManager | null = null;
+  private static _instance: I18nManager = null!;
   static get instance() {
     if (!this._instance) {
       this._instance = new I18nManager();
@@ -67,15 +67,15 @@ export class I18nManager implements II18nManager {
   //#endregion
 
   private _assetPath = I18N_ASSET_PATH;
-  private _languageAsset: JsonAsset | null = null;
-  private _languageMeta: LanguageMeta | null = null;
+  private _languageAsset: JsonAsset = null!;
+  private _languageMeta: LanguageMeta = null!;
   private _languageMap: Map<string, string> = new Map<string, string>();
   private _resourceScope: AssetScope = new AssetScope(ASSET_SCOPE_I18N);
 
   //#region 状态与回退
   /** @internal 内部防重入守卫，外部通过 EventBus 事件驱动 UI */
   private _isSwitching = false;
-  private _fallbackLanguage: string | null = null;
+  private _fallbackLanguage: string = null!;
   private _fallbackMap: Map<string, string> = new Map();
 
   /** 当前回退语言代码（未设置时返回 null） */
@@ -102,7 +102,7 @@ export class I18nManager implements II18nManager {
     this._fallbackMap.clear();
     const data = asset.json as Record<string, any>;
     if (data) {
-      this.flattenData(data, '', this._fallbackMap);
+      this._flattenData(data, '', this._fallbackMap);
     }
   }
 
@@ -126,7 +126,7 @@ export class I18nManager implements II18nManager {
 
   set languageAsset(asset: JsonAsset) {
     this._languageAsset = asset;
-    this.resetLanguage();
+    this._resetLanguage();
   }
 
   get languageMeta(): LanguageMeta | null {
@@ -148,7 +148,7 @@ export class I18nManager implements II18nManager {
   }
 
   /** 扁平化多语言数据（提高查找性能） */
-  private flattenData(data: Record<string, any>, prefix = '', target?: Map<string, string>): void {
+  private _flattenData(data: Record<string, any>, prefix = '', target?: Map<string, string>): void {
     const result = target ?? this._languageMap;
     for (const [key, value] of (Object as any).entries(data)) {
       const newKey = prefix ? `${prefix}.${key}` : key;
@@ -156,13 +156,13 @@ export class I18nManager implements II18nManager {
       if (typeof value === 'string') {
         result.set(newKey, value);
       } else if (value && typeof value === 'object') {
-        this.flattenData(value, newKey, result);
+        this._flattenData(value, newKey, result);
       }
     }
   }
 
   /** 更新渲染器（刷新语言） */
-  private resetLanguage() {
+  private _resetLanguage() {
     const configData = this._languageAsset?.json;
     const languageMeta = toLanguageMeta(configData);
 
@@ -178,7 +178,7 @@ export class I18nManager implements II18nManager {
     }
 
     this._languageMap.clear();
-    this.flattenData(configData);
+    this._flattenData(configData);
     // 事件驱动刷新：替代原先 updateRenderers() 的全场景遍历
     EventBus.emit(I18nEventType.LANGUAGE_SWITCHED, { language: this._languageMeta.code });
   }
@@ -216,7 +216,7 @@ export class I18nManager implements II18nManager {
       this._resourceScope.releaseAll();
       this._resourceScope = new AssetScope(`${ASSET_SCOPE_I18N}${language}`);
       this._languageAsset = newAsset;
-      this.resetLanguage(); // 内部发射 LANGUAGE_SWITCHED 事件
+      this._resetLanguage(); // 内部发射 LANGUAGE_SWITCHED 事件
     } catch (e) {
       // 回滚到旧语言状态
       this._languageAsset = savedAsset;
@@ -325,7 +325,7 @@ export class I18nManager implements II18nManager {
     return this._resourceScope.getSpriteFrame(path);
   }
 
-  private async loadEditorSpriteFrameByUuid(uuid: string): Promise<SpriteFrame | null> {
+  private async _loadEditorSpriteFrameByUuid(uuid: string): Promise<SpriteFrame | null> {
     if (!uuid) return null;
 
     return new Promise<SpriteFrame | null>((resolve) => {
@@ -363,7 +363,7 @@ export class I18nManager implements II18nManager {
     try {
       const uuid = await uuidResolver(imagePath);
       if (!uuid) return null;
-      return await this.loadEditorSpriteFrameByUuid(uuid);
+      return await this._loadEditorSpriteFrameByUuid(uuid);
     } catch (error) {
       console.warn("I18nManager: editor sprite resolver failed", error);
       return null;

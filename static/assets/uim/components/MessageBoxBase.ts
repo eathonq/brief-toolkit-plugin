@@ -32,70 +32,37 @@ export class MessageBoxBase extends ViewBase {
   })
   viewType: ViewType = ViewType.MessageBox;
 
-  @property({
-    tooltip: "是否缓存（关闭不删除）",
-    override: true,
-  })
+  @property({ tooltip: "是否缓存（关闭不删除）", override: true })
   isCache: boolean = true;
 
-  @property({
-    type: Label,
-    tooltip: "标题文本",
-  })
+  @property({ type: Label, tooltip: "标题文本" })
   title: Label = null!;
 
-  @property({
-    type: Button,
-    tooltip: "顶部关闭按钮",
-  })
+  @property({ type: Button, tooltip: "顶部关闭按钮" })
   topClose: Button = null!;
 
-  @property({
-    type: Label,
-    tooltip: "内容文本",
-  })
+  @property({ type: Label, tooltip: "内容文本" })
   content: Label = null!;
 
-  @property({
-    type: Button,
-    tooltip: "确定按钮",
-  })
+  @property({ type: Button, tooltip: "确定按钮" })
   ok: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "是按钮",
-  })
+  @property({ type: Button, tooltip: "是按钮" })
   yes: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "否按钮",
-  })
+  @property({ type: Button, tooltip: "否按钮" })
   no: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "取消按钮",
-  })
+  @property({ type: Button, tooltip: "取消按钮" })
   cancel: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "中止按钮",
-  })
+  @property({ type: Button, tooltip: "中止按钮" })
   abort: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "重试按钮",
-  })
+  @property({ type: Button, tooltip: "重试按钮" })
   retry: Button = null!;
 
-  @property({
-    type: Button,
-    tooltip: "忽略按钮",
-  })
+  @property({ type: Button, tooltip: "忽略按钮" })
   ignore: Button = null!;
 
   protected onLoad(): void {
@@ -105,7 +72,7 @@ export class MessageBoxBase extends ViewBase {
       switch (state) {
         case ViewState.Show:
         case ViewState.Data:
-          this.resetData(data);
+          this._resetData(data);
           break;
         case ViewState.Hide:
         case ViewState.Close:
@@ -113,7 +80,7 @@ export class MessageBoxBase extends ViewBase {
       }
     });
 
-    this.initButtonEvent();
+    this._initButtonEvent();
   }
 
   protected onDisable(): void {
@@ -127,7 +94,7 @@ export class MessageBoxBase extends ViewBase {
 
   /** 数据关闭回调 */
   private _callback: (result: MessageBoxResult) => void;
-  private resetData(data: MessageBoxData) {
+  private _resetData(data: MessageBoxData) {
     // 同名消息框重复显示：取消旧的 Promise，更新为新数据（与 Tooltip 行为一致）
     if (this._callback) {
       const oldCallback = this._callback;
@@ -221,7 +188,7 @@ export class MessageBoxBase extends ViewBase {
     }
   }
 
-  private initButtonEvent() {
+  private _initButtonEvent() {
     const doSetEvent = (button: Button, result: MessageBoxResult) => {
       if (!button) return;
       button.node.off(Button.EventType.CLICK);

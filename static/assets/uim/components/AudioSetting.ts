@@ -8,7 +8,7 @@
  * @version v1.2.0
  *
  * @created 2023-02-28
- * @modified 2026-06-10（重构为纯配置组件 + 重命名）
+ * @modified 2026-06-10
  */
 
 import { _decorator, Component, AudioClip } from "cc";
@@ -20,15 +20,11 @@ const { ccclass, help, menu, property } = _decorator;
 @help('https://vangagh.gitbook.io/brief-toolkit/uim/audiomanager')
 @menu('BriefToolkit/UIM/AudioSetting')
 export class AudioSetting extends Component {
-  @property({
-    type: AudioClip,
-    tooltip: "默认背景音乐文件",
-  })
-  private musicClip: AudioClip = null;
+  @property({ type: AudioClip, tooltip: "默认背景音乐文件" })
+  private musicClip: AudioClip = null!;
 
-  @property({
-    tooltip: "启动播放背景音乐",
-  })
+  @property({ tooltip: "启动播放背景音乐" })
+
   private playOnLoad: boolean = false;
 
   protected onLoad(): void {

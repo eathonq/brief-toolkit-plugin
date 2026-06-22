@@ -261,7 +261,7 @@ class DecoratorData {
     });
   }
 
-  private createEmptyClassData(): ClassData {
+  private _createEmptyClassData(): ClassData {
     return {
       name: '',
       constructor: null,
@@ -274,9 +274,9 @@ class DecoratorData {
     };
   }
 
-  private getCurrentClassInfo(ownerName?: string) {
+  private _getCurrentClassInfo(ownerName?: string) {
     if (!this._currentClass) {
-      this._currentClass = this.createEmptyClassData();
+      this._currentClass = this._createEmptyClassData();
       this._pendingOwnerName = ownerName || '';
     }
 
@@ -284,14 +284,14 @@ class DecoratorData {
       // 成员装饰器先于类装饰器执行，这里用 ownerName 绑定当前收集批次，避免串类。
       if (this._pendingOwnerName && this._pendingOwnerName !== ownerName) {
         console.warn(`[mvvm] Detected undecorated class batch from '${this._pendingOwnerName}'. Did you forget @vm/@model? Start a new batch for '${ownerName}'.`);
-        this._currentClass = this.createEmptyClassData();
+        this._currentClass = this._createEmptyClassData();
       }
       this._pendingOwnerName = ownerName;
     }
 
     return this._currentClass;
   }
-  private saveCurrentClassInfo() {
+  private _saveCurrentClassInfo() {
     if (this._currentClass) {
       this._classMap.set(this._currentClass.name, this._currentClass);
       this._currentClass = null;
@@ -299,7 +299,7 @@ class DecoratorData {
     }
   }
 
-  private toPropertyName(key: string | symbol) {
+  private _toPropertyName(key: string | symbol) {
     return typeof key === 'symbol' ? key.toString() : key;
   }
 
@@ -326,7 +326,7 @@ class DecoratorData {
    * @param classInfo 
    * @returns 
    */
-  private getUnknownProperty(classInfo: ClassData) {
+  private _getUnknownProperty(classInfo: ClassData) {
     const temp = new classInfo.constructor();
     if (!temp) {
       return;
@@ -372,8 +372,8 @@ class DecoratorData {
   }
 
   addProperty(constructor: any, key: string | symbol, type: any) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
-    const propertyName = this.toPropertyName(key);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
+    const propertyName = this._toPropertyName(key);
     let kind = toDataKind(type);
     let typeName = '';
     // 引用了自己类型为做属性类型，由于还未定义，导致这里 type 为 undefined
@@ -391,40 +391,40 @@ class DecoratorData {
     classInfo.propertyList.push({ name: propertyName, type: typeName, kind: kind });
   }
   addUnknownProperty(constructor: any, key: string | symbol) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
-    const propertyName = this.toPropertyName(key);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
+    const propertyName = this._toPropertyName(key);
     classInfo.propertyList.push({ name: propertyName, type: 'unknown', kind: DataKind.Unknown });
   }
 
   addFunction(constructor: any, key: string | symbol) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
-    const functionName = this.toPropertyName(key);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
+    const functionName = this._toPropertyName(key);
     classInfo.functionList.push({ name: functionName, kind: DataKind.Function });
   }
 
   addEvent(constructor: any, key: string | symbol, eventName: string) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
-    const handlerName = this.toPropertyName(key);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
+    const handlerName = this._toPropertyName(key);
     classInfo.eventList.push({ name: eventName, handler: handlerName });
   }
 
   addModel(constructor: any, name: string, global: boolean) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
     classInfo.name = name;
     classInfo.constructor = constructor;
     classInfo.isGlobal = global;
-    this.getUnknownProperty(classInfo);
-    this.saveCurrentClassInfo();
+    this._getUnknownProperty(classInfo);
+    this._saveCurrentClassInfo();
   }
 
   addViewModel(constructor: any, name: string, global: boolean) {
-    const classInfo = this.getCurrentClassInfo(constructor?.name);
+    const classInfo = this._getCurrentClassInfo(constructor?.name);
     classInfo.name = name;
     classInfo.constructor = constructor;
     classInfo.isGlobal = global;
     classInfo.isViewModel = true;
-    this.getUnknownProperty(classInfo);
-    this.saveCurrentClassInfo();
+    this._getUnknownProperty(classInfo);
+    this._saveCurrentClassInfo();
   }
 
   /**

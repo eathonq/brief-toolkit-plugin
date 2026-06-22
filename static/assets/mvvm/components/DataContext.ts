@@ -27,7 +27,6 @@ const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 @executeInEditMode
 @menu('BriefToolkit/Mvvm/DataContext')
 export class DataContext extends Component {
-
   /**
    * 获取绑定数据
    * @param node 有挂载 ViewModel 的节点
@@ -57,7 +56,7 @@ export class DataContext extends Component {
   }
 
   @property
-  private _parent: DataContext = null;
+  private _parent: DataContext = null!;
   /** 数据上下文路径 */
   @property({
     tooltip: '数据上下文',
@@ -125,10 +124,10 @@ export class DataContext extends Component {
   }
 
   /** 上一级绑定数据 */
-  protected _upperData: unknown = null;
+  protected _upperData: unknown = null!;
 
   /** 当前绑定数据 */
-  protected _data: unknown = null;
+  protected _data: unknown = null!;
   /** 当前绑定数据 */
   get dataContext() {
     return this._data;
@@ -141,16 +140,16 @@ export class DataContext extends Component {
   }
 
   protected checkEditorComponent() {
-    this.initParentDataContext();
+    this._initParentDataContext();
 
     // 上下文数据异常，则不继续执行
     if (!this._parent) return;
 
-    this.updateEditorBindingEnums();
+    this._updateEditorBindingEnums();
   }
 
   /** 组件绑定数据类型更新 */
-  private updateEditorBindingEnums() {
+  private _updateEditorBindingEnums() {
     // 设置绑定属性
     const newEnums = [];
     let dataList = decoratorData.getPropertyList(this._parent.bindingType);
@@ -253,7 +252,7 @@ export class DataContext extends Component {
     return names.reverse().join('/');
   }
 
-  private initParentDataContext() {
+  private _initParentDataContext() {
     if (!this._parent) {
       this._parent = DataContext.lookUp(this.node, this);
       if (!this._parent) {
@@ -266,7 +265,7 @@ export class DataContext extends Component {
   }
 
   /** 观察函数 */
-  private _watchHandle: WatchHandle | null = null;
+  private _watchHandle: WatchHandle = null!;
   /** 绑定数据更新，子类重写 */
   protected onUpdateData() {
     // 上下文数据异常，则不继续执行
@@ -340,7 +339,7 @@ export class DataContext extends Component {
 
   /** 恢复：节点出池后重新建立上下文和数据监听 */
   resume(): void {
-    this.initParentDataContext();
+    this._initParentDataContext();
     this.onUpdateData();
   }
 

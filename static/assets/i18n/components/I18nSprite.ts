@@ -28,7 +28,6 @@ const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 @executeInEditMode
 @menu('BriefToolkit/I18n/I18nSprite')
 export class I18nSprite extends Component {
-
   // 用于防止异步加载回调覆盖最新语言对应的图片
   private _resetVersion: number = 0;
 
@@ -64,10 +63,10 @@ export class I18nSprite extends Component {
   //#region EDITOR
 
   onRestore() {
-    this.checkEditorComponent();
+    this._checkEditorComponent();
   }
 
-  private checkEditorComponent() {
+  private _checkEditorComponent() {
     if (EDITOR) {
       let com = this.node.getComponent(Sprite);
       if (!com) {
@@ -79,11 +78,11 @@ export class I18nSprite extends Component {
 
   //#endregion
 
-  private _langToken: SubscriptionToken | null = null;
+  private _langToken: SubscriptionToken = null!;
 
   protected onLoad() {
     if (EDITOR) {
-      this.checkEditorComponent();
+      this._checkEditorComponent();
       return;
     }
     this._langToken = EventBus.on(I18nEventType.LANGUAGE_SWITCHED, () => this._onLanguageSwitched());
@@ -111,18 +110,18 @@ export class I18nSprite extends Component {
     // 编辑器模式下直接使用 I18nManager 的接口加载资源，以支持本地化预览功能
     if (EDITOR) {
       I18nManager.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
-        this.setComponentValue(spriteFrame);
+        this._setComponentValue(spriteFrame);
       });
       return;
     }
 
     I18nManager.instance.loadImage(imagePath).then((spriteFrame) => {
       if (requestVersion !== this._resetVersion) return;
-      this.setComponentValue(spriteFrame);
+      this._setComponentValue(spriteFrame);
     });
   }
 
-  private setComponentValue(spriteFrame: SpriteFrame) {
+  private _setComponentValue(spriteFrame: SpriteFrame) {
     if (!spriteFrame) return;
     const sprite = this.node.getComponent(Sprite);
     if (sprite) {

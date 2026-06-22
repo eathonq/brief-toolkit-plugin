@@ -36,7 +36,6 @@ const COMP_ARRAY_CHECK: { type: any, property: string }[] = [
 @executeInEditMode
 @menu('BriefToolkit/I18n/I18nLabel')
 export class I18nLabel extends Component {
-
   @property({
     tooltip: '绑定组件的名字',
     displayName: 'Component',
@@ -81,10 +80,10 @@ export class I18nLabel extends Component {
 
   //#region EDITOR
   onRestore() {
-    this.checkEditorComponent();
+    this._checkEditorComponent();
   }
 
-  private checkEditorComponent() {
+  private _checkEditorComponent() {
     if (EDITOR) {
       for (const item of COMP_ARRAY_CHECK) {
         if (this.node.getComponent(item.type)) {
@@ -103,12 +102,12 @@ export class I18nLabel extends Component {
   }
   //#endregion
 
-  private _langToken: SubscriptionToken | null = null;
+  private _langToken: SubscriptionToken = null!;
 
   protected onLoad() {
     this._langToken = EventBus.on(I18nEventType.LANGUAGE_SWITCHED, () => this._onLanguageSwitched());
     if (EDITOR) {
-      this.checkEditorComponent();
+      this._checkEditorComponent();
       return;
     }
     this.resetValue();
@@ -140,16 +139,16 @@ export class I18nLabel extends Component {
     const model = I18nManager.instance.labelModel;
     switch (model) {
       case I18nLabelMode.DATA:
-        this.setComponentValue(I18nManager.instance.text(key, this._args));
+        this._setComponentValue(I18nManager.instance.text(key, this._args));
         break;
       case I18nLabelMode.PATH:
-        this.setComponentValue(key);
+        this._setComponentValue(key);
         break;
     }
   }
 
   /** 设置组件值 */
-  private setComponentValue(value: string) {
+  private _setComponentValue(value: string) {
     if (!value || value == "") return;
 
     switch (this.componentName) {

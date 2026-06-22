@@ -25,7 +25,7 @@ const ASSET_SCOPE_AUDIO = "__AUDIO__";
 /** 音频管理器（全局单例） */
 export class AudioManager implements IAudioManager {
   //#region 单例
-  private static _instance: AudioManager | null = null;
+  private static _instance: AudioManager = null!;
   static get instance() {
     if (!this._instance) {
       this._instance = new AudioManager();
@@ -51,7 +51,7 @@ export class AudioManager implements IAudioManager {
   //#endregion
 
   /** 默认背景音乐 clip（由 AudioSetting 设置） */
-  defaultMusicClip: AudioClip | null = null;
+  defaultMusicClip: AudioClip = null!;
   /** 启动时是否播放背景音乐（由 AudioSetting 设置） */
   playOnLoad: boolean = false;
 
@@ -120,7 +120,7 @@ export class AudioManager implements IAudioManager {
     if (!this._musicSwitch) return;
     let music: AudioClip = this.defaultMusicClip;
     if (path) {
-      music = await this.getOrCreateAudioClip(path);
+      music = await this._getOrCreateAudioClip(path);
     }
     this.playMusicByClip(music, loop);
   }
@@ -211,7 +211,7 @@ export class AudioManager implements IAudioManager {
       return;
     }
     if (this._soundSwitch) {
-      const audioClip = await this.getOrCreateAudioClip(path);
+      const audioClip = await this._getOrCreateAudioClip(path);
       if (audioClip) {
         const finalVolume = clampVolume(checkUndefinedAndNull(volume) ? this._soundVolume : volume);
         this._oneShotAudioSource.playOneShot(audioClip, finalVolume);
@@ -231,8 +231,8 @@ export class AudioManager implements IAudioManager {
     await this._playEventMutex.wait();
     const soundId = ++this._soundIdCounter;
     try {
-      const audioSource = this.createAudioSource(soundId, onStop);
-      const audioClip = await this.getOrCreateAudioClip(path);
+      const audioSource = this._createAudioSource(soundId, onStop);
+      const audioClip = await this._getOrCreateAudioClip(path);
       if (!audioClip) {
         audioSource.node.emit(AudioSource.EventType.ENDED);
         return -1;
@@ -263,7 +263,7 @@ export class AudioManager implements IAudioManager {
     }
     if (!this._soundSwitch) {
       for (const item of this._audioSourceMap.values()) {
-        this.stopAudioSource(item);
+        this._stopAudioSource(item);
       }
     }
     return this._soundSwitch;
@@ -308,12 +308,12 @@ export class AudioManager implements IAudioManager {
 
   stopSound(soundId: number): void {
     const item = this._audioSourceMap.get(soundId);
-    if (item) this.stopAudioSource(item);
+    if (item) this._stopAudioSource(item);
   }
 
   stopAllSounds(): void {
     for (const item of this._audioSourceMap.values()) {
-      this.stopAudioSource(item);
+      this._stopAudioSource(item);
     }
   }
 
@@ -326,7 +326,7 @@ export class AudioManager implements IAudioManager {
 
   // ── 内部 ──
 
-  private async getOrCreateAudioClip(path: string): Promise<AudioClip> {
+  private async _getOrCreateAudioClip(path: string): Promise<AudioClip> {
     if (!path) return null;
     const cache = this._audioClipCaches.get(path);
     if (cache) return cache;
@@ -347,7 +347,7 @@ export class AudioManager implements IAudioManager {
     return await loadingTask;
   }
 
-  private createAudioSource(soundId: number, onStop?: () => void): AudioSource {
+  private _createAudioSource(soundId: number, onStop?: () => void): AudioSource {
     let audioSourceNode = this._audioSourceNodePool.get();
     if (!audioSourceNode) {
       audioSourceNode = new Node();
@@ -368,7 +368,7 @@ export class AudioManager implements IAudioManager {
     return audioSource;
   }
 
-  private stopAudioSource(audioSource: AudioSource): void {
+  private _stopAudioSource(audioSource: AudioSource): void {
     audioSource.stop();
     audioSource.node.emit(AudioSource.EventType.ENDED);
   }

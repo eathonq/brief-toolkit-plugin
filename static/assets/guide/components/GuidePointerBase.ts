@@ -45,21 +45,14 @@ export enum AnimType {
 @ccclass('guide.GuidePointerBase')
 @menu('BriefToolkit/Guide/GuidePointerBase')
 export class GuidePointerBase extends Component implements IGuidePointer {
+  @property({ type: Node, tooltip: '翻转目标节点（可选，不填则翻转根节点本身）' })
+  protected flipTarget: Node = null!;
 
-  @property({
-    type: Node,
-    tooltip: '翻转目标节点（可选，不填则翻转根节点本身）',
-  })
-  protected flipTarget: Node | null = null;
-
-  @property({
-    type: Enum(AnimType),
-    tooltip: '指示器动画类型',
-  })
+  @property({ type: Enum(AnimType), tooltip: '指示器动画类型' })
   protected animationType: AnimType = AnimType.Bounce;
 
   /** 当前所在方向（子类可读取） */
-  protected currentDirection: Direction | null = null;
+  protected _currentDirection: Direction = null!;
 
   /**
    * 步骤间过渡动画时长（秒），默认 0.3。
@@ -101,7 +94,7 @@ export class GuidePointerBase extends Component implements IGuidePointer {
 
   /** 隐藏指示器 */
   hide(): void {
-    this.stopAnimation();
+    this._stopAnimation();
     this.node.active = false;
   }
 
@@ -112,7 +105,7 @@ export class GuidePointerBase extends Component implements IGuidePointer {
   protected positionAt(target: Node, options?: CalcOptions): GuidePositionResult {
     const r = GuidePosition.calc(this.node, target, options);
     this.node.setPosition(r.position);
-    this.currentDirection = r.direction;
+    this._currentDirection = r.direction;
     return r;
   }
 
@@ -128,8 +121,8 @@ export class GuidePointerBase extends Component implements IGuidePointer {
     switch (dir) {
       case 'top': break;
       case 'bottom': visual.setScale(v3(1, -1, 1)); break;
-      case 'left':   visual.setRotationFromEuler(0, 0, 90); break;
-      case 'right':  visual.setRotationFromEuler(0, 0, -90); break;
+      case 'left': visual.setRotationFromEuler(0, 0, 90); break;
+      case 'right': visual.setRotationFromEuler(0, 0, -90); break;
     }
   }
 
@@ -139,8 +132,8 @@ export class GuidePointerBase extends Component implements IGuidePointer {
   protected playAnimation(snap?: boolean): void {
     if (this.animationType === AnimType.None) return;
 
-    if(snap){
-      this.stopAnimationImmediate();
+    if (snap) {
+      this._stopAnimationImmediate();
     }
 
     const visual = this.flipTarget || this.node;
@@ -170,14 +163,14 @@ export class GuidePointerBase extends Component implements IGuidePointer {
   /**
    * 停止动画并还原视觉状态
    */
-  private stopAnimation(): void {
+  private _stopAnimation(): void {
     const visual = this.flipTarget || this.node;
     tween(visual).stop();
     visual.setScale(v3(1, 1, 1));
   }
 
   /** 彻底停止动画 */
-  private stopAnimationImmediate(): void {
+  private _stopAnimationImmediate(): void {
     const visual = this.flipTarget || this.node;
     Tween.stopAllByTarget(visual);
     visual.setScale(v3(1, 1, 1));

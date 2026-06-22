@@ -251,6 +251,58 @@ idle → startTask() → running ⇄ nextStep / previousStep / jumpTo(n)
 
 ---
 
+## 命名规范
+
+插件遵循以下命名约定，确保代码风格统一、与 Cocos Creator 3.8 生态协调。
+
+### 下划线 `_` 前缀规则
+
+| 类别 | 约定 | 示例 |
+| :--- | :--- | :--- |
+| **私有实例字段** | `private _xxx` | `private _eventTokens: SubscriptionToken[]` |
+| **受保护实例字段** | `protected _xxx` | `protected _data: unknown = null!` |
+| **私有方法** | `private _xxx()` | `private _bindEventDecorators()` |
+| **`@property` 后备字段**（有 getter/setter 包装） | `@property private _xxx` | `@property private _bindingMode = -1`<br>`get mode() { return this._bindingMode; }` |
+| **模块级私有变量** | `let _xxx` / `const _xxx` | `let _currentViewManager: IViewManager` |
+| **模块级内部函数** | `__xxx()` | `export function __viewsBind()` |
+
+### 不使用 `_` 前缀
+
+| 类别 | 约定 | 理由 |
+| :--- | :--- | :--- |
+| **公共 API**（方法 / getter / setter） | 无 `_` | 对外暴露的接口保持干净 |
+| **受保护生命周期钩子** | `protected onLoad()` 等 | 与 Cocos 引擎标准钩子名保持一致 |
+| **`@property` 直接暴露字段**（无 getter/setter 包装） | `@property private xxx` | 字段直接出现在编辑器面板中，`_` 前缀不美观且无必要 |
+| **MVVM `@prop` 装饰属性** | `@prop title = ""` | ViewModel 的公共数据契约 |
+| **私有构造函数**（单例模式） | `private constructor()` | 标准设计模式，无需 `_` |
+
+### 关键区分：`@property` 字段
+
+```
+@property 字段：
+  ├── 有 getter/setter 包装 → 后备字段加 _，getter/setter 不加 _
+  │   例：@property private _bindingMode = -1
+  │        get mode() { return this._bindingMode; }
+  │
+  └── 直接访问（无包装） → 不加 _
+      例：@property private guideConfig: JsonAsset = null!
+          // 在代码和编辑器中都直接使用 guideConfig
+```
+
+### `null` 初始化规范
+
+**所有字段（无论是否 `@property` 装饰）统一使用 `= null!`，禁止 `Type | null = null`、`= null`、`!` 三种写法。**
+
+| ❌ 禁止 | ✅ 正确 | 原因 |
+| :--- | :--- | :--- |
+| `private _target: Node \| null = null` | `private _target: Node = null!` | `\| null` 联合类型导致 Creator 编辑器无法识别属性类型 |
+| `private viewContent: Node = null` | `private viewContent: Node = null!` | 统一用 `null!` 明确非空断言意图 |
+| `private _maskGfx!: Graphics` | `private _maskGfx: Graphics = null!` | 统一用声明式初始化 |
+
+> **注意**：`null!` 是 TypeScript 的非空断言语法，告诉编译器"此字段初始化前为 null，但所有访问路径都保证在赋值后进行"。对于在 `onLoad` / `constructor` 中必然赋值的字段，这是安全的。
+
+---
+
 ## 📄 协议
 
 MIT License

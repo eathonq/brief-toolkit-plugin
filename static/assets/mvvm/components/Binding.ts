@@ -65,7 +65,7 @@ export class Binding extends CCElement {
 
   /** 数据上下文路径 */
   @property(DataContext)
-  private _parent: DataContext = null;
+  private _parent: DataContext = null!;
   @property({
     type: DataContext,
     displayName: 'DataContext',
@@ -77,8 +77,8 @@ export class Binding extends CCElement {
   }
   private set parent(value) {
     this._parent = value;
-    this.updateEditorModeEnums();
-    this.updateEditorBindingEnums();
+    this._updateEditorModeEnums();
+    this._updateEditorBindingEnums();
   }
 
   @property
@@ -136,10 +136,10 @@ export class Binding extends CCElement {
   }
 
   /** 上一级绑定数据 */
-  private _upperData: unknown = null;
+  private _upperData: unknown = null!;
 
   /** 当前绑定数据 */
-  protected _data: unknown = null;
+  protected _data: unknown = null!;
   /** 当前绑定数据 */
   get dataContext() {
     return this._data;
@@ -152,7 +152,7 @@ export class Binding extends CCElement {
   }
 
   protected checkEditorComponent() {
-    this.initParentDataContext();
+    this._initParentDataContext();
     if (!this._parent) return; // 上下文数据异常，则不继续执行
     super.checkEditorComponent();
   }
@@ -167,12 +167,12 @@ export class Binding extends CCElement {
     // this._bindingName = '';
 
     if (!this._parent) return; // 上下文数据异常，则不继续执行
-    this.updateEditorModeEnums();
-    this.updateEditorBindingEnums();
+    this._updateEditorModeEnums();
+    this._updateEditorBindingEnums();
   }
 
   /** 更新绑定模式枚举 */
-  private updateEditorModeEnums() {
+  private _updateEditorModeEnums() {
     const newEnums: { name: string, value: number, mode: BindingMode }[] = [];
     let count = 0;
     switch (this._elementName) {
@@ -232,7 +232,7 @@ export class Binding extends CCElement {
   }
 
   /** 更新绑定数据枚举 */
-  private updateEditorBindingEnums() {
+  private _updateEditorBindingEnums() {
     // 获取绑定属性
     const newEnums: { name: string, value: number, type: string }[] = [];
     const isFunc = this._elementKinds.indexOf(DataKind.Function) !== -1;
@@ -355,9 +355,9 @@ export class Binding extends CCElement {
   }
 
   private _resumeBinding(): void {
-    this.initParentDataContext();
+    this._initParentDataContext();
     this._applyBindingMode();
-    this.onUpdateData();
+    this._onUpdateData();
   }
 
   /** 根据 _bindingMode 设置 _isObservable 和 UI 事件回调 */
@@ -368,7 +368,7 @@ export class Binding extends CCElement {
     switch (this._bindingMode) {
       case BindingMode.TwoWay:
         this._isObservable = true;
-        if (hasParent) this.onElementCallback(this.onElementValueChange.bind(this));
+        if (hasParent) this.onElementCallback(this._onElementValueChange.bind(this));
         break;
       case BindingMode.OneWay:
         this._isObservable = true;
@@ -377,7 +377,7 @@ export class Binding extends CCElement {
         this._isObservable = true;
         break;
       case BindingMode.OneWayToSource:
-        if (hasParent) this.onElementCallback(this.onElementValueChange.bind(this));
+        if (hasParent) this.onElementCallback(this._onElementValueChange.bind(this));
         break;
       default:
         console.warn(`PATH ${this.getNodePath()} 组件 Binding 绑定模式异常，已回退到 OneWay。`);
@@ -386,7 +386,7 @@ export class Binding extends CCElement {
     }
   }
 
-  private initParentDataContext() {
+  private _initParentDataContext() {
     if (!this._parent) {
       this._parent = DataContext.lookUp(this.node);
       if (!this._parent) {
@@ -395,12 +395,12 @@ export class Binding extends CCElement {
       }
     }
 
-    this._parent.register(this, this.onUpdateData);
+    this._parent.register(this, this._onUpdateData);
   }
 
   private _isObservable = false;
-  private _watchHandle: WatchHandle | null = null;
-  private onUpdateData() {
+  private _watchHandle: WatchHandle = null!;
+  private _onUpdateData() {
     // 上下文数据异常，则不继续执行
     if (!this._parent) return;
 
@@ -466,7 +466,7 @@ export class Binding extends CCElement {
     }
   }
 
-  private onElementValueChange(value: unknown) {
+  private _onElementValueChange(value: unknown) {
     if (this._bindingName === ITEMS_SOURCE_DELETE) {
       if (!this._parent) {
         console.warn(`PATH ${this.getNodePath()} ITEMS_SOURCE_DELETE 绑定的删除按钮找不到 ItemsSource 父上下文`);

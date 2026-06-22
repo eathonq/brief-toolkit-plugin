@@ -1,5 +1,5 @@
 /**
- * mvvmType.ts - 类型工具
+ * MvvmType.ts - 类型工具
  * @description 提供 MVVM 框架的 TypeScript 类型推导工具，弥补 Cocos Component 无法使用泛型类的限制。
  *
  * @author eathonq

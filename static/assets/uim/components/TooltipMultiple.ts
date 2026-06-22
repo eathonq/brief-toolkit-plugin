@@ -33,28 +33,16 @@ export class TooltipMultiple extends ViewBase {
   })
   viewType: ViewType = ViewType.Tooltip;
 
-  @property({
-    tooltip: "是否缓存（关闭不删除）",
-    override: true,
-  })
+  @property({ tooltip: "是否缓存（关闭不删除）", override: true })
   isCache: boolean = true;
 
-  @property({
-    type: Node,
-    tooltip: "多内容模板",
-  })
+  @property({ type: Node, tooltip: "多内容模板" })
   template: Node = null!;
 
-  @property({
-    type: Button,
-    tooltip: "关闭按钮",
-  })
+  @property({ type: Button, tooltip: "关闭按钮" })
   close: Button = null!;
 
-  @property({
-    type: Label,
-    tooltip: "内容文本",
-  })
+  @property({ type: Label, tooltip: "内容文本" })
   content: Label = null!;
 
   protected onLoad(): void {
@@ -64,7 +52,7 @@ export class TooltipMultiple extends ViewBase {
       switch (state) {
         case ViewState.Show:
         case ViewState.Data:
-          this.resetData(data);
+          this._resetData(data);
           break;
         case ViewState.Hide:
         case ViewState.Close:
@@ -72,10 +60,10 @@ export class TooltipMultiple extends ViewBase {
       }
     });
 
-    this.initTemplate();
+    this._initTemplate();
   }
 
-  private getPath(node: Node, root: Node) {
+  private _getPath(node: Node, root: Node) {
     const path_list = [];
     let findItem = node;
     while (findItem && findItem.name !== 'Canvas') {
@@ -89,7 +77,7 @@ export class TooltipMultiple extends ViewBase {
     }
     return path_list.reverse();
   }
-  private getNode(path_list: string[], root: Node) {
+  private _getNode(path_list: string[], root: Node) {
     if (path_list.length === 0) return null;
 
     let findItem = root;
@@ -102,23 +90,23 @@ export class TooltipMultiple extends ViewBase {
   }
   private _closePath: string[] = [];
   private _contentPath: string[] = [];
-  private initTemplate() {
+  private _initTemplate() {
     if (EDITOR) return;
 
     if (!this.template) return;
 
     // 查找所在路径
     if (this.close) {
-      this._closePath = this.getPath(this.close.node, this.template);
+      this._closePath = this._getPath(this.close.node, this.template);
     }
     if (this.content) {
-      this._contentPath = this.getPath(this.content.node, this.template);
+      this._contentPath = this._getPath(this.content.node, this.template);
     }
 
     this.template.active = false;
   }
 
-  private addItem(data: TooltipData) {
+  private _addItem(data: TooltipData) {
     if (!this.template) return;
     const item = instantiate(this.template);
 
@@ -132,12 +120,12 @@ export class TooltipMultiple extends ViewBase {
       }
     };
 
-    const labelNode = this.getNode(this._contentPath, item);
+    const labelNode = this._getNode(this._contentPath, item);
     const label = labelNode?.getComponent(Label);
     if (label) {
       label.string = data.content;
     }
-    const buttonNode = this.getNode(this._closePath, item);
+    const buttonNode = this._getNode(this._closePath, item);
     const button = buttonNode?.getComponent(Button);
     if (button) {
       if (data.isClose) {
@@ -162,8 +150,8 @@ export class TooltipMultiple extends ViewBase {
     }
   }
 
-  private resetData(data: TooltipData) {
-    this.addItem(data);
+  private _resetData(data: TooltipData) {
+    this._addItem(data);
   }
 
 }

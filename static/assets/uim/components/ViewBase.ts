@@ -32,28 +32,21 @@ export const VIEW_TYPE_TOOLTIP =
 @executeInEditMode
 @menu('BriefToolkit/UIM/ViewBase')
 export class ViewBase extends ViewSort {
-  @property({
-    tooltip: "视图名称",
-  })
+  @property({ tooltip: "视图名称" })
   viewName: string = "";
 
-  @property({
-    type: Enum(ViewType),
-    tooltip: VIEW_TYPE_TOOLTIP,
-  })
+  @property({ type: Enum(ViewType), tooltip: VIEW_TYPE_TOOLTIP })
   viewType: ViewType = ViewType.View;
 
-  @property({
-    tooltip: "是否缓存（关闭不删除）",
-  })
+  @property({ tooltip: "是否缓存（关闭不删除）" })
   isCache: boolean = false;
 
   //#region EDITOR
   onRestore() {
-    this.checkEditorComponent(true);
+    this._checkEditorComponent(true);
   }
 
-  private checkEditorComponent(isTitle = false) {
+  private _checkEditorComponent(isTitle = false) {
     if (this.viewName == "") {
       this.viewName = this.node.name;
     }
@@ -71,7 +64,7 @@ export class ViewBase extends ViewSort {
 
   protected onLoad() {
     if (EDITOR) {
-      this.checkEditorComponent();
+      this._checkEditorComponent();
       return;
     }
 
@@ -91,7 +84,7 @@ export class ViewBase extends ViewSort {
     }
   }
 
-  protected doClose: (name: string, data?: any) => void = null;
+  protected doClose: (name: string, data?: any) => void = null!;
   onCloseEvent(event: EventTouch, customEventData: string) {
     this.doClose?.(this.viewName);
   }
@@ -101,7 +94,7 @@ export class ViewBase extends ViewSort {
     this.doClose = handler;
   }
 
-  protected doBack: () => void = null;
+  protected doBack: () => void = null!;
   onBackEvent(event: EventTouch, customEventData: string) {
     this.doBack?.();
   }

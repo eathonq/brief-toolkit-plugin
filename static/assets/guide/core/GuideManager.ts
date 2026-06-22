@@ -47,9 +47,7 @@ enum GuideState {
  */
 export class GuideManager implements IGuideManager {
   //#region 单例
-
-  private static _instance: GuideManager | null = null;
-
+  private static _instance: GuideManager = null!;
   static get instance(): GuideManager {
     if (!GuideManager._instance) {
       GuideManager._instance = new GuideManager();
@@ -64,12 +62,11 @@ export class GuideManager implements IGuideManager {
       GuideManager._instance = null;
     }
   }
-
   //#endregion
 
   // 引导参数（setup 时一次性注入）
-  private _task: GuideTask | null = null;
-  private _stepAction: GuideStepAction | null = null;
+  private _task: GuideTask = null!;
+  private _stepAction: GuideStepAction = null!;
 
   // ── 状态机 ──
   private _state: GuideState = GuideState.idle;
@@ -83,7 +80,7 @@ export class GuideManager implements IGuideManager {
    */
   private _pendingJump: number = -1;
   /** startTask 返回的 Promise resolve */
-  private _resolveTask: ((result: GuideResult) => void) | null = null;
+  private _resolveTask: ((result: GuideResult) => void) = null!;
 
   //#region IGuideManager 实现
 

@@ -41,7 +41,7 @@ export function __viewsUnbind(viewManager: IViewManager): void {
 /** 视图静态类，便捷提供全局调用显示、关闭视图等方法 */
 export class Views {
   /** 视图操作错误回调（name: 视图名称, reason: 失败原因） */
-  static onError: ((name: string, reason: string) => void) | null = null;
+  static onError: ((name: string, reason: string) => void) = null!;
 
   /**
    * 获取当前 IViewManager 实例。

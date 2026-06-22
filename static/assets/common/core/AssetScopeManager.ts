@@ -29,21 +29,19 @@
 import { SpriteFrame, JsonAsset, Prefab, AudioClip, Node, Sprite, Asset } from 'cc';
 import { AssetScope } from './AssetScope';
 
+/**
+ * 资源作用域管理器
+ * - 全局单例，组件通过它加载资源，不需要关心当前属于哪个 Scope。
+ * - 由 AssetScopeMount 组件在场景 onLoad / onDestroy 时自动 push / pop。
+ * - 不挂 Mount → 自动走 _defaultScope（永不释放，开发期会 warn）。
+ */
 export class AssetScopeManager {
+  // ────────── 当前作用域 ──────────
   /** 作用域栈（支持叠加场景） */
   private static _scopeStack: AssetScope[] = [];
 
   /** 默认兜底作用域（永不释放，确保 current 永不为 null） */
   private static _defaultScope = new AssetScope('__global__');
-
-  /** 生产模式下无 Mount 场景是否告警 */
-  private static _warnedMissingMount = false;
-
-  // ────────── 去抖（setNodeSprite 用）──────────
-  private static _requestId = 0;
-  private static _targetRequestMap: WeakMap<object, number> = new WeakMap<object, number>();
-
-  // ────────── 当前作用域 ──────────
 
   /**
    * 当前活跃作用域。
@@ -57,8 +55,14 @@ export class AssetScopeManager {
     return this._defaultScope;
   }
 
-  // ────────── 场景生命周期 ──────────
+  /** 生产模式下无 Mount 场景是否告警 */
+  private static _warnedMissingMount = false;
 
+  // ────────── 去抖（setNodeSprite 用）──────────
+  private static _requestId = 0;
+  private static _targetRequestMap: WeakMap<object, number> = new WeakMap<object, number>();
+
+  // ────────── 场景生命周期 ──────────
   /**
    * 场景进入：推入新 Scope 到栈顶。
    * 由 AssetScopeMount.onLoad() 调用。

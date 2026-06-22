@@ -36,16 +36,16 @@ import { GuideInteractionHandler } from './GuideInteractionHandler';
  * 交互处理委托给 GuideInteractionHandler。
  */
 export class GuideStepAction {
-  private _rootNode: Node = null;
-  private _guideFocus: IGuideFocus = null;
-  private _dialog: IGuideDialog | null = null;
-  private _pointer: IGuidePointer | null = null;
+  private _rootNode: Node = null!;
+  private _guideFocus: IGuideFocus = null!;
+  private _dialog: IGuideDialog = null!;
+  private _pointer: IGuidePointer = null!;
 
   /** 交互处理器（条件校验 + trigger 解析 + do* 方法） */
   private _handler: GuideInteractionHandler;
 
   /** 当前步骤的清理函数链（用于外部 cancel） */
-  private _currentCleanup: (() => void) | null = null;
+  private _currentCleanup: (() => void) = null!;
 
   constructor(
     rootNode: Node,
@@ -70,7 +70,7 @@ export class GuideStepAction {
 
   // ── 节点定位 ──
 
-  private async getNode(path: string) {
+  private async _getNode(path: string) {
     const node = await CCLocatorLoop.locateNode(path, this._rootNode);
     if (!node) {
       console.error(`GuideStepAction: node not found: ${path}`);
@@ -106,7 +106,7 @@ export class GuideStepAction {
   // ── 步骤执行 ──
 
   async runStep(step: GuideStep, stepIndex?: number, totalSteps?: number): Promise<void> {
-    const node = await this.getNode(step.target);
+    const node = await this._getNode(step.target);
     if (!node) {
       console.warn(`GuideStepAction: 引导步骤目标节点不存在，路径: ${step.target}`);
       return;

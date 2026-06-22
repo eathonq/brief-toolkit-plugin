@@ -38,7 +38,7 @@ export class CCAssets {
   // ═══════════════════════════════════════════════════════════
 
   /** 规范化资源路径（用于 resources/bundle.load） */
-  private static normalizeAssetPath(raw: string): string {
+  private static _normalizeAssetPath(raw: string): string {
     let normalized = (raw ?? '').trim();
     if (!normalized) return '';
 
@@ -60,7 +60,7 @@ export class CCAssets {
   }
 
   /** 解析资源路径，返回标准化后的 path、bundle 名与是否远程 */
-  private static parsePath(raw: string): { path: string; bundle?: string; isRemote: boolean } {
+  private static _parsePath(raw: string): { path: string; bundle?: string; isRemote: boolean } {
     const trimmed = (raw ?? '').trim();
     if (!trimmed) {
       return { path: '', isRemote: false };
@@ -77,7 +77,7 @@ export class CCAssets {
       if (inner.startsWith('assets/resources/')) {
         return {
           bundle: _res_,
-          path: this.normalizeAssetPath(inner),
+          path: this._normalizeAssetPath(inner),
           isRemote: false,
         };
       }
@@ -87,20 +87,20 @@ export class CCAssets {
       }
       return {
         bundle: inner.slice(0, firstSlash),
-        path: this.normalizeAssetPath(inner.slice(firstSlash + 1)),
+        path: this._normalizeAssetPath(inner.slice(firstSlash + 1)),
         isRemote: false,
       };
     }
 
     // 主包相对路径
-    return { path: this.normalizeAssetPath(trimmed), isRemote: false };
+    return { path: this._normalizeAssetPath(trimmed), isRemote: false };
   }
 
   // ═══════════════════════════════════════════════════════════
   // Bundle 管理
   // ═══════════════════════════════════════════════════════════
 
-  private static loadBundle(name: string, url?: string, version?: string): Promise<AssetManager.Bundle | null> {
+  private static _loadBundle(name: string, url?: string, version?: string): Promise<AssetManager.Bundle | null> {
     const loaded = this._bundleMap.get(name);
     if (loaded) {
       return Promise.resolve(loaded);
@@ -133,12 +133,12 @@ export class CCAssets {
   // 内部加载器
   // ═══════════════════════════════════════════════════════════
 
-  private static async loadSpriteFrame(
+  private static async _loadSpriteFrame(
     bundleName: string, path: string, formate: SpriteLoadFormate = 'spriteFrame',
   ): Promise<SpriteFrame | null> {
     if (!path || path.trim() === '') return null;
 
-    const bundle = await this.loadBundle(bundleName ?? _res_);
+    const bundle = await this._loadBundle(bundleName ?? _res_);
     if (!bundle) return null;
 
     if (formate === 'spriteFrame') {
@@ -163,7 +163,7 @@ export class CCAssets {
     return null;
   }
 
-  private static async loadRemoteSpriteFrame(url: string): Promise<SpriteFrame | null> {
+  private static async _loadRemoteSpriteFrame(url: string): Promise<SpriteFrame | null> {
     if (!url || url.trim() === '') return null;
 
     const cached = this._remoteSpriteFrameCache.get(url);
@@ -196,9 +196,9 @@ export class CCAssets {
   // 释放
   // ═══════════════════════════════════════════════════════════
 
-  private static async releaseWithBundle(bundleName: string, path: string): Promise<void> {
+  private static async _releaseWithBundle(bundleName: string, path: string): Promise<void> {
     if (!path || path.trim() === '') return;
-    const bundle = await this.loadBundle(bundleName ?? _res_);
+    const bundle = await this._loadBundle(bundleName ?? _res_);
     if (!bundle) return;
     bundle.release(path);
   }
@@ -222,7 +222,7 @@ export class CCAssets {
     raw: string,
     type?: { new(...args: any[]): T },
   ): Promise<T | null> {
-    const parsed = this.parsePath(raw);
+    const parsed = this._parsePath(raw);
     if (!parsed.path) return null;
 
     if (parsed.isRemote) {
@@ -233,7 +233,7 @@ export class CCAssets {
       });
     }
 
-    const bundle = await this.loadBundle(parsed.bundle ?? _res_);
+    const bundle = await this._loadBundle(parsed.bundle ?? _res_);
     if (!bundle) return null;
 
     return new Promise<T | null>((resolve) => {
@@ -261,12 +261,12 @@ export class CCAssets {
   static async getSpriteFrame(
     raw: string, formate: SpriteLoadFormate = 'spriteFrame',
   ): Promise<SpriteFrame | null> {
-    const parsed = this.parsePath(raw);
+    const parsed = this._parsePath(raw);
     if (!parsed.path) return null;
     if (parsed.isRemote) {
-      return this.loadRemoteSpriteFrame(parsed.path);
+      return this._loadRemoteSpriteFrame(parsed.path);
     }
-    return this.loadSpriteFrame(parsed.bundle, parsed.path, formate);
+    return this._loadSpriteFrame(parsed.bundle, parsed.path, formate);
   }
 
   /**
@@ -316,9 +316,9 @@ export class CCAssets {
    * @param raw 资源路径
    */
   static async releasePath(raw: string): Promise<void> {
-    const parsed = this.parsePath(raw);
+    const parsed = this._parsePath(raw);
     if (parsed.isRemote) return;
-    return this.releaseWithBundle(parsed.bundle, parsed.path);
+    return this._releaseWithBundle(parsed.bundle, parsed.path);
   }
 
   /**

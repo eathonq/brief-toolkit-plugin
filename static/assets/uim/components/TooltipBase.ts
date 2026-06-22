@@ -32,22 +32,13 @@ export class TooltipBase extends ViewBase {
   })
   viewType: ViewType = ViewType.Tooltip;
 
-  @property({
-    tooltip: "是否缓存（关闭不删除）",
-    override: true,
-  })
+  @property({ tooltip: "是否缓存（关闭不删除）", override: true })
   isCache: boolean = true;
 
-  @property({
-    type: Button,
-    tooltip: "关闭按钮",
-  })
+  @property({ type: Button, tooltip: "关闭按钮" })
   close: Button = null!;
 
-  @property({
-    type: Label,
-    tooltip: "内容文本",
-  })
+  @property({ type: Label, tooltip: "内容文本" })
   content: Label = null!;
 
   protected onLoad(): void {
@@ -57,7 +48,7 @@ export class TooltipBase extends ViewBase {
       switch (state) {
         case ViewState.Show:
         case ViewState.Data:
-          this.resetData(data);
+          this._resetData(data);
           break;
         case ViewState.Hide:
         case ViewState.Close:
@@ -65,7 +56,7 @@ export class TooltipBase extends ViewBase {
       }
     });
 
-    this.initButtonEvent();
+    this._initButtonEvent();
   }
 
   protected onDisable(): void {
@@ -80,7 +71,7 @@ export class TooltipBase extends ViewBase {
 
   /** 数据关闭回调 */
   private _callback: () => void;
-  private resetData(data: TooltipData) {
+  private _resetData(data: TooltipData) {
     // 默认数据恢复
     if (!data) data = {
       content: undefined,
@@ -111,7 +102,7 @@ export class TooltipBase extends ViewBase {
     }
   }
 
-  private initButtonEvent() {
+  private _initButtonEvent() {
     if (!this.close) return;
 
     const doSetEvent = (button: Button) => {

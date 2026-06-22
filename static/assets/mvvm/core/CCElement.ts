@@ -45,11 +45,11 @@ const CC_ELEMENT_CLASS_NAME = 'private.CCElement';
 @executeInEditMode
 export class CCElement extends Component {
   private _disposers: Array<() => void> = [];
-  private readonly _elementRegistry: Element[] = this.createElementRegistry();
-  private _runtimeSetHandler: ((value: any) => void) | null = null;
-  private _runtimeBindHandler: (() => void) | null = null;
+  private readonly _elementRegistry: Element[] = this._createElementRegistry();
+  private _runtimeSetHandler: ((value: any) => void) = null!;
+  private _runtimeBindHandler: (() => void) = null!;
 
-  private createElementRegistry(): Element[] {
+  private _createElementRegistry(): Element[] {
     return [
       {
         name: Label.name,
@@ -58,7 +58,7 @@ export class CCElement extends Component {
           {
             name: 'string',
             kind: [DataKind.String, DataKind.Number, DataKind.Boolean],
-            setValue: (value) => this.setLabelValue(value)
+            setValue: (value) => this._setLabelValue(value)
           }
         ]
       },
@@ -69,7 +69,7 @@ export class CCElement extends Component {
           {
             name: 'string',
             kind: [DataKind.String, DataKind.Number, DataKind.Boolean],
-            setValue: (value) => this.setRichTextValue(value)
+            setValue: (value) => this._setRichTextValue(value)
           }
         ]
       },
@@ -80,8 +80,8 @@ export class CCElement extends Component {
           {
             name: 'string',
             kind: [DataKind.String, DataKind.Number, DataKind.Boolean],
-            setValue: (value) => this.setEditBoxValue(value),
-            bindCallback: () => this.bindEditBoxCallback()
+            setValue: (value) => this._setEditBoxValue(value),
+            bindCallback: () => this._bindEditBoxCallback()
           }
         ]
       },
@@ -92,8 +92,8 @@ export class CCElement extends Component {
           {
             name: 'isChecked',
             kind: [DataKind.Boolean],
-            setValue: (value) => this.setToggleValue(value),
-            bindCallback: () => this.bindToggleCallback()
+            setValue: (value) => this._setToggleValue(value),
+            bindCallback: () => this._bindToggleCallback()
           }
         ]
       },
@@ -104,7 +104,7 @@ export class CCElement extends Component {
           {
             name: 'click',
             kind: [DataKind.Function],
-            bindCallback: () => this.bindButtonCallback()
+            bindCallback: () => this._bindButtonCallback()
           }
         ]
       },
@@ -115,8 +115,8 @@ export class CCElement extends Component {
           {
             name: 'progress',
             kind: [DataKind.Number],
-            setValue: (value) => this.setSliderValue(value),
-            bindCallback: () => this.bindSliderCallback()
+            setValue: (value) => this._setSliderValue(value),
+            bindCallback: () => this._bindSliderCallback()
           }
         ]
       },
@@ -127,7 +127,7 @@ export class CCElement extends Component {
           {
             name: 'progress',
             kind: [DataKind.Number],
-            setValue: (value) => this.setProgressBarValue(value)
+            setValue: (value) => this._setProgressBarValue(value)
           }
         ]
       },
@@ -138,8 +138,8 @@ export class CCElement extends Component {
           {
             name: 'currentPageIndex',
             kind: [DataKind.Number],
-            setValue: (value) => this.setPageViewValue(value),
-            bindCallback: () => this.bindPageViewCallback()
+            setValue: (value) => this._setPageViewValue(value),
+            bindCallback: () => this._bindPageViewCallback()
           }
         ]
       },
@@ -150,7 +150,7 @@ export class CCElement extends Component {
           {
             name: 'spriteFrame',
             kind: [DataKind.String],
-            setValue: (value) => this.setSpriteValue(value)
+            setValue: (value) => this._setSpriteValue(value)
           }
         ]
       },
@@ -161,8 +161,8 @@ export class CCElement extends Component {
           {
             name: 'checkedIndex',
             kind: [DataKind.Number],
-            setValue: (value) => this.setToggleContainerValue(value),
-            bindCallback: () => this.bindToggleContainerCallback()
+            setValue: (value) => this._setToggleContainerValue(value),
+            bindCallback: () => this._bindToggleContainerCallback()
           }
         ]
       },
@@ -173,29 +173,29 @@ export class CCElement extends Component {
           {
             name: 'active',
             kind: [DataKind.Boolean, DataKind.Number, DataKind.String, DataKind.Object],
-            setValue: (value) => this.setNodeActiveValue(value),
-            bindCallback: () => this.bindNodeActiveCallback()
+            setValue: (value) => this._setNodeActiveValue(value),
+            bindCallback: () => this._bindNodeActiveCallback()
           },
           {
             name: 'position',
             kind: [DataKind.Vec],
-            setValue: (value) => this.setNodePositionValue(value),
-            bindCallback: () => this.bindNodePositionCallback()
+            setValue: (value) => this._setNodePositionValue(value),
+            bindCallback: () => this._bindNodePositionCallback()
           },
           {
             name: 'touch-start',
             kind: [DataKind.Function],
-            bindCallback: () => this.bindNodeTouchCallback(Node.EventType.TOUCH_START)
+            bindCallback: () => this._bindNodeTouchCallback(Node.EventType.TOUCH_START)
           },
           {
             name: 'touch-move',
             kind: [DataKind.Function],
-            bindCallback: () => this.bindNodeTouchCallback(Node.EventType.TOUCH_MOVE)
+            bindCallback: () => this._bindNodeTouchCallback(Node.EventType.TOUCH_MOVE)
           },
           {
             name: 'touch-end',
             kind: [DataKind.Function],
-            bindCallback: () => this.bindNodeTouchCallback(Node.EventType.TOUCH_END)
+            bindCallback: () => this._bindNodeTouchCallback(Node.EventType.TOUCH_END)
           }
         ]
       }
@@ -212,7 +212,7 @@ export class CCElement extends Component {
     return names.reverse().join('/');
   }
 
-  private getSafeComponent<T>(component: new (...args: any[]) => T): T | null {
+  private _getSafeComponent<T>(component: new (...args: any[]) => T): T | null {
     const target = this.node.getComponent(component as any) as T | null;
     if (!target) {
       console.warn(`PATH ${this.getNodePath()} 缺少组件 ${component.name}，绑定操作已忽略`);
@@ -221,7 +221,7 @@ export class CCElement extends Component {
     return target;
   }
 
-  private clearRuntimeListeners() {
+  private _clearRuntimeListeners() {
     if (this._disposers.length > 0) {
       for (let i = this._disposers.length - 1; i >= 0; i--) {
         try {
@@ -235,7 +235,7 @@ export class CCElement extends Component {
     }
   }
 
-  private addDisposer(disposer: () => void) {
+  private _addDisposer(disposer: () => void) {
     this._disposers.push(disposer);
   }
 
@@ -257,8 +257,8 @@ export class CCElement extends Component {
     this._bindingElement = value;
     if (this._elementEnums[value]) {
       this._elementName = this._elementEnums[value].name;
-      this.selectedComponent();
-      this.refreshRuntimeHandlers();
+      this._selectedComponent();
+      this._refreshRuntimeHandlers();
     }
   }
 
@@ -281,7 +281,7 @@ export class CCElement extends Component {
     if (this._propertyEnums[value]) {
       this._propertyName = this._propertyEnums[value].name;
       this.selectedProperty();
-      this.refreshRuntimeHandlers();
+      this._refreshRuntimeHandlers();
     }
   }
 
@@ -318,13 +318,13 @@ export class CCElement extends Component {
   }
 
   protected checkEditorComponent() {
-    this.identifyComponent();
-    this.updateEditorElementEnums();
+    this._identifyComponent();
+    this._updateEditorElementEnums();
   }
 
   /** 识别到的组件列表 */
   private _identifyList: Element[] = [];
-  private identifyComponent() {
+  private _identifyComponent() {
     this._identifyList = [];
     for (let i = 0; i < this._elementRegistry.length; i++) {
       const element = this._elementRegistry[i];
@@ -334,7 +334,7 @@ export class CCElement extends Component {
     }
   }
 
-  private updateEditorElementEnums() {
+  private _updateEditorElementEnums() {
     const newEnums = [];
     if (this._identifyList.length > 0) {
       for (let i = 0; i < this._identifyList.length; i++) {
@@ -357,7 +357,7 @@ export class CCElement extends Component {
     this.bindingElement = 0;
   }
 
-  private updateEditorPropertyEnums() {
+  private _updateEditorPropertyEnums() {
     const newEnums = [];
     if (this._identifyList.length > 0) {
       const element = this._identifyList[this._bindingElement];
@@ -382,8 +382,8 @@ export class CCElement extends Component {
     this.bindingProperty = 0;
   }
 
-  private selectedComponent() {
-    this.updateEditorPropertyEnums();
+  private _selectedComponent() {
+    this._updateEditorPropertyEnums();
   }
 
   protected selectedProperty() {
@@ -394,7 +394,7 @@ export class CCElement extends Component {
     else {
       this._elementKinds = [];
     }
-    this.refreshRuntimeHandlers();
+    this._refreshRuntimeHandlers();
   }
   //#endregion
 
@@ -404,26 +404,26 @@ export class CCElement extends Component {
       return;
     }
 
-    this.refreshRuntimeHandlers();
+    this._refreshRuntimeHandlers();
   }
 
   protected onDestroy() {
-    this.clearRuntimeListeners();
+    this._clearRuntimeListeners();
     this._runtimeSetHandler = null;
     this._runtimeBindHandler = null;
   }
 
   /** 暂停：清理 UI 事件监听（对象池回收用） */
   suspend(): void {
-    this.clearRuntimeListeners();
+    this._clearRuntimeListeners();
   }
 
   /** 恢复：重建运行时处理器（对象池复用用） */
   resume(): void {
-    this.refreshRuntimeHandlers();
+    this._refreshRuntimeHandlers();
   }
 
-  private getRuntimeBindingConfig(): ElementBinding | null {
+  private _getRuntimeBindingConfig(): ElementBinding | null {
     const element = this._elementRegistry.find((item) => item.name === this._elementName);
     if (!element) {
       return null;
@@ -439,8 +439,8 @@ export class CCElement extends Component {
     return element.binding[0] ?? null;
   }
 
-  private refreshRuntimeHandlers() {
-    const bindingConfig = this.getRuntimeBindingConfig();
+  private _refreshRuntimeHandlers() {
+    const bindingConfig = this._getRuntimeBindingConfig();
     this._runtimeSetHandler = bindingConfig?.setValue ?? null;
     this._runtimeBindHandler = bindingConfig?.bindCallback ?? null;
   }
@@ -452,9 +452,9 @@ export class CCElement extends Component {
     this._runtimeSetHandler(value);
   }
 
-  private _elementValueChange: (value: any) => void = null;
+  private _elementValueChange: (value: any) => void = null!;
   protected onElementCallback(elementValueChange: (value: any) => void) {
-    this.clearRuntimeListeners();
+    this._clearRuntimeListeners();
     this._elementValueChange = elementValueChange;
     if (!this._runtimeBindHandler) {
       return;
@@ -462,61 +462,61 @@ export class CCElement extends Component {
     this._runtimeBindHandler();
   }
 
-  private toStringValue(value: any): string {
+  private _toStringValue(value: any): string {
     if (value === undefined || value === null) {
       return "";
     }
     return `${value}`;
   }
 
-  private toNumberValue(value: any, fallback = 0): number {
+  private _toNumberValue(value: any, fallback = 0): number {
     if (value === undefined || value === null) {
       return fallback;
     }
     return Number(value);
   }
 
-  private setLabelValue(value: any) {
-    const label = this.getSafeComponent(Label);
+  private _setLabelValue(value: any) {
+    const label = this._getSafeComponent(Label);
     if (!label) return;
-    label.string = this.toStringValue(value);
+    label.string = this._toStringValue(value);
   }
 
-  private setRichTextValue(value: any) {
-    const richText = this.getSafeComponent(RichText);
+  private _setRichTextValue(value: any) {
+    const richText = this._getSafeComponent(RichText);
     if (!richText) return;
-    richText.string = this.toStringValue(value);
+    richText.string = this._toStringValue(value);
   }
 
-  private setEditBoxValue(value: any) {
-    const editBox = this.getSafeComponent(EditBox);
+  private _setEditBoxValue(value: any) {
+    const editBox = this._getSafeComponent(EditBox);
     if (!editBox) return;
-    editBox.string = this.toStringValue(value);
+    editBox.string = this._toStringValue(value);
   }
 
-  private setToggleValue(value: any) {
-    const toggle = this.getSafeComponent(Toggle);
+  private _setToggleValue(value: any) {
+    const toggle = this._getSafeComponent(Toggle);
     if (!toggle) return;
     toggle.isChecked = Boolean(value);
   }
 
-  private setSliderValue(value: any) {
-    const slider = this.getSafeComponent(Slider);
+  private _setSliderValue(value: any) {
+    const slider = this._getSafeComponent(Slider);
     if (!slider) return;
-    slider.progress = this.toNumberValue(value);
+    slider.progress = this._toNumberValue(value);
   }
 
-  private setProgressBarValue(value: any) {
-    const progressBar = this.getSafeComponent(ProgressBar);
+  private _setProgressBarValue(value: any) {
+    const progressBar = this._getSafeComponent(ProgressBar);
     if (!progressBar) return;
-    progressBar.progress = this.toNumberValue(value);
+    progressBar.progress = this._toNumberValue(value);
   }
 
-  private setPageViewValue(value: any) {
-    const pageView = this.getSafeComponent(PageView);
+  private _setPageViewValue(value: any) {
+    const pageView = this._getSafeComponent(PageView);
     if (!pageView) return;
 
-    const index = this.toNumberValue(value);
+    const index = this._toNumberValue(value);
 
     // 使用 Promise 或 nextTick 延迟到下一帧执行
     Promise.resolve().then(() => {
@@ -526,8 +526,8 @@ export class CCElement extends Component {
     });
   }
 
-  private setSpriteValue(value: any) {
-    const sprite = this.getSafeComponent(Sprite);
+  private _setSpriteValue(value: any) {
+    const sprite = this._getSafeComponent(Sprite);
     if (!sprite) return;
     if (!value) {
       sprite.spriteFrame = null;
@@ -536,87 +536,87 @@ export class CCElement extends Component {
     AssetScopeManager.setNodeSprite(sprite, value);
   }
 
-  private setToggleContainerValue(value: any) {
-    const toggleContainer = this.getSafeComponent(ToggleContainer);
+  private _setToggleContainerValue(value: any) {
+    const toggleContainer = this._getSafeComponent(ToggleContainer);
     if (!toggleContainer) return;
     const toggles = toggleContainer.getComponentsInChildren(Toggle);
-    const index = this.toNumberValue(value);
+    const index = this._toNumberValue(value);
     for (let i = 0; i < toggles.length; i++) {
       toggles[i].isChecked = i === index;
     }
   }
 
-  private bindEditBoxCallback() {
-    const editBox = this.getSafeComponent(EditBox);
+  private _bindEditBoxCallback() {
+    const editBox = this._getSafeComponent(EditBox);
     if (!editBox) return;
     const callback = (currentEditBox: EditBox) => {
       this._elementValueChange?.(currentEditBox.string);
     };
     editBox.node.on(EditBox.EventType.TEXT_CHANGED, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (editBox && editBox.node && editBox.node.isValid) {
         editBox.node.off(EditBox.EventType.TEXT_CHANGED, callback, this);
       }
     });
   }
 
-  private bindToggleCallback() {
-    const toggle = this.getSafeComponent(Toggle);
+  private _bindToggleCallback() {
+    const toggle = this._getSafeComponent(Toggle);
     if (!toggle) return;
     const callback = (currentToggle: Toggle) => {
       this._elementValueChange?.(currentToggle.isChecked);
     };
     toggle.node.on(Toggle.EventType.TOGGLE, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (toggle && toggle.node && toggle.node.isValid) {
         toggle.node.off(Toggle.EventType.TOGGLE, callback, this);
       }
     });
   }
 
-  private bindButtonCallback() {
-    const button = this.getSafeComponent(Button);
+  private _bindButtonCallback() {
+    const button = this._getSafeComponent(Button);
     if (!button) return;
     const callback = () => {
       this._elementValueChange?.(this.customEventData);
     };
     button.node.on(Button.EventType.CLICK, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (button && button.node && button.node.isValid) {
         button.node.off(Button.EventType.CLICK, callback, this);
       }
     });
   }
 
-  private bindSliderCallback() {
-    const slider = this.getSafeComponent(Slider);
+  private _bindSliderCallback() {
+    const slider = this._getSafeComponent(Slider);
     if (!slider) return;
     const callback = (currentSlider: Slider) => {
       this._elementValueChange?.(currentSlider.progress);
     };
     slider.node.on('slide', callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (slider && slider.node && slider.node.isValid) {
         slider.node.off('slide', callback, this);
       }
     });
   }
 
-  private bindPageViewCallback() {
-    const pageView = this.getSafeComponent(PageView);
+  private _bindPageViewCallback() {
+    const pageView = this._getSafeComponent(PageView);
     if (!pageView) return;
     const callback = (currentPageView: PageView) => {
       this._elementValueChange?.(currentPageView.getCurrentPageIndex());
     };
     pageView.node.on(PageView.EventType.PAGE_TURNING, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (pageView && pageView.node && pageView.node.isValid) {
         pageView.node.off(PageView.EventType.PAGE_TURNING, callback, this);
       }
     });
   }
 
-  private onToggleGroup(toggle: Toggle) {
+  private _onToggleGroup(toggle: Toggle) {
     if (!toggle || !toggle.node) return;
     const parent: Node = toggle.node.parent;
     if (!parent || EDITOR) return;
@@ -626,17 +626,17 @@ export class CCElement extends Component {
     this._elementValueChange?.(index);
   }
 
-  private bindToggleContainerCallback() {
-    const container = this.getSafeComponent(ToggleContainer);
+  private _bindToggleContainerCallback() {
+    const container = this._getSafeComponent(ToggleContainer);
     if (!container) return;
     const exist = container.checkEvents.find((item) => {
       return item &&
         item.target === this.node &&
         item.component === CC_ELEMENT_CLASS_NAME &&
-        item.handler === 'onToggleGroup';
+        item.handler === '_onToggleGroup';
     });
     if (exist) {
-      this.addDisposer(() => {
+      this._addDisposer(() => {
         if (container && container.checkEvents && container.checkEvents.length > 0) {
           const index = container.checkEvents.indexOf(exist);
           if (index !== -1) {
@@ -650,10 +650,10 @@ export class CCElement extends Component {
     const containerEventHandler = new EventHandler();
     containerEventHandler.target = this.node;
     containerEventHandler.component = CC_ELEMENT_CLASS_NAME;
-    containerEventHandler.handler = 'onToggleGroup';
+    containerEventHandler.handler = '_onToggleGroup';
     containerEventHandler.customEventData = '0';
     container.checkEvents.push(containerEventHandler);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (container && container.checkEvents && container.checkEvents.length > 0) {
         const index = container.checkEvents.indexOf(containerEventHandler);
         if (index !== -1) {
@@ -664,12 +664,12 @@ export class CCElement extends Component {
   }
 
   //#region Node get set value
-  private _value: any = null;
-  private setNodeActiveValue(value: any) {
+  private _value: any = null!;
+  private _setNodeActiveValue(value: any) {
     this.node.active = !!value;
   }
 
-  private setNodePositionValue(value: any) {
+  private _setNodePositionValue(value: any) {
     this._value = value;
     if (!this._value) {
       this._value = { x: 0, y: 0, z: 0 };
@@ -679,19 +679,19 @@ export class CCElement extends Component {
     this.node.position = pos;
   }
 
-  private bindNodeActiveCallback() {
+  private _bindNodeActiveCallback() {
     const callback = () => {
       this._elementValueChange?.(this.node.active);
     };
     this.node.on(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (this.node && this.node.isValid) {
         this.node.off(Node.EventType.ACTIVE_IN_HIERARCHY_CHANGED, callback, this);
       }
     });
   }
 
-  private bindNodePositionCallback() {
+  private _bindNodePositionCallback() {
     const callback = () => {
       const currentPos = this.node.position;
       if (!this._value) {
@@ -713,19 +713,19 @@ export class CCElement extends Component {
       this._elementValueChange?.(this._value);
     };
     this.node.on(Node.EventType.TRANSFORM_CHANGED, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (this.node && this.node.isValid) {
         this.node.off(Node.EventType.TRANSFORM_CHANGED, callback, this);
       }
     });
   }
 
-  private bindNodeTouchCallback(eventType: string) {
+  private _bindNodeTouchCallback(eventType: string) {
     const callback = () => {
       this._elementValueChange?.(this.customEventData);
     };
     this.node.on(eventType, callback, this);
-    this.addDisposer(() => {
+    this._addDisposer(() => {
       if (this.node && this.node.isValid) {
         this.node.off(eventType, callback, this);
       }

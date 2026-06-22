@@ -40,21 +40,20 @@ const COLOR_DEFAULT = new Color(180, 180, 180, 255);
 @ccclass('guide.GuideDialogProgress')
 @menu('BriefToolkit/Guide/GuideDialogProgress')
 export class GuideDialogProgress extends GuideDialogBase {
-
   @property({ type: Node, tooltip: 'Previous 按钮节点' })
-  private prevBtn: Node | null = null;
+  private prevBtn: Node = null!;
 
   @property({ type: Node, tooltip: 'Next 按钮节点' })
-  private nextBtn: Node | null = null;
+  private nextBtn: Node = null!;
 
   @property({ type: Node, tooltip: 'Finish 按钮节点' })
-  private finishBtn: Node | null = null;
+  private finishBtn: Node = null!;
 
   @property({ type: Node, tooltip: 'Info 容器（Layout H，内含 Item 模板）' })
-  private infoContainer: Node | null = null;
+  private infoContainer: Node = null!;
 
   @property({ type: Node, tooltip: 'Item 模板节点（作为第 0 个指示器，其余克隆）' })
-  private itemTemplate: Node | null = null;
+  private itemTemplate: Node = null!;
 
   /** 除模板外的克隆指示器节点列表 */
   private _indicatorClones: Node[] = [];

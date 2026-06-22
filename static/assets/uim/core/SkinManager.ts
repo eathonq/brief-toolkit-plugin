@@ -19,7 +19,7 @@ import { __skinsBind } from './Skins';
 /** 皮肤管理器（全局单例） */
 export class SkinManager implements ISkinManager {
   //#region 单例
-  private static _instance: SkinManager | null = null;
+  private static _instance: SkinManager = null!;
   static get instance() {
     if (!this._instance) {
       this._instance = new SkinManager();
@@ -58,7 +58,7 @@ export class SkinManager implements ISkinManager {
 
   restoreState(state: SkinThemeState): void {
     this._stores.restoreState(state);
-    this.updateSceneRenderers();
+    this._updateSceneRenderers();
   }
 
   getState(): SkinThemeState {
@@ -75,24 +75,24 @@ export class SkinManager implements ISkinManager {
 
   switchTheme(themeKey: string): void {
     this._stores.switchTheme(themeKey);
-    this.updateSceneRenderers();
+    this._updateSceneRenderers();
   }
 
   setActiveItem(key: string, themeKey?: string): boolean {
     const updated = this._stores.setActiveItem(key, themeKey);
-    if (updated) this.updateSceneRenderers();
+    if (updated) this._updateSceneRenderers();
     return updated;
   }
 
   setItemEnable(key: string, enable: boolean, themeKey?: string): boolean {
     const updated = this._stores.setItemEnable(key, enable, themeKey);
-    if (updated) this.updateSceneRenderers();
+    if (updated) this._updateSceneRenderers();
     return updated;
   }
 
   setItemLocked(key: string, locked: boolean, themeKey?: string): boolean {
     const updated = this._stores.setItemLocked(key, locked, themeKey);
-    if (updated) this.updateSceneRenderers();
+    if (updated) this._updateSceneRenderers();
     return updated;
   }
 
@@ -103,7 +103,7 @@ export class SkinManager implements ISkinManager {
   // ── 刷新 ──
 
   /** 更新场景渲染器：遍历注册表中的活跃 SkinSprite，O(活跃数) 替代全场景 O(n) 遍历 */
-  private updateSceneRenderers(): void {
+  private _updateSceneRenderers(): void {
     for (const sprite of SkinManager._activeSprites) {
       if (!sprite.node?.active) continue;
       sprite.resetValue();

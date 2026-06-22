@@ -32,7 +32,6 @@ const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 @executeInEditMode
 @menu("BriefToolkit/Mvvm/ViewModel")
 export class ViewModel extends DataContext {
-
   private get viewModelData(): BaseViewModel | null {
     return this._data as BaseViewModel | null;
   }
@@ -45,15 +44,12 @@ export class ViewModel extends DataContext {
 
   protected _viewModelEnums: { name: string, value: number }[] = [];
   private _viewModel = 0;
-  @property({
-    type: Enum({}),
-    tooltip: "视图模型",
-  })
+  @property({ type: Enum({}), tooltip: "视图模型" })
   get viewModel() {
     return this._viewModel;
   }
 
-  private resolveViewModelIndex(value: number): number {
+  private _resolveViewModelIndex(value: number): number {
     if (!Number.isInteger(value)) {
       return 0;
     }
@@ -64,7 +60,7 @@ export class ViewModel extends DataContext {
   }
 
   set viewModel(value) {
-    const safeIndex = this.resolveViewModelIndex(value);
+    const safeIndex = this._resolveViewModelIndex(value);
     this._viewModel = safeIndex;
 
     // 相关本地数据保存
@@ -86,10 +82,10 @@ export class ViewModel extends DataContext {
   }
 
   protected checkEditorComponent() {
-    this.updateEditorViewModelEnums();
+    this._updateEditorViewModelEnums();
   }
 
-  private updateEditorViewModelEnums() {
+  private _updateEditorViewModelEnums() {
     // 设置绑定属性
     const newEnums: { name: string, value: number }[] = [];
     const dataList = decoratorData.getViewModelList(this.node.name);
@@ -126,8 +122,8 @@ export class ViewModel extends DataContext {
   /** @event 自动订阅产生的令牌，销毁时统一解绑 */
   private _eventTokens: SubscriptionToken[] = [];
   /** 应用前后台事件监听引用 */
-  private _gameShowHandler: (() => void) | null = null;
-  private _gameHideHandler: (() => void) | null = null;
+  private _gameShowHandler: (() => void) = null!;
+  private _gameHideHandler: (() => void) = null!;
 
   // ──────────── Runtime ────────────
 

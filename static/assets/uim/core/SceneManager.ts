@@ -26,7 +26,7 @@ import { __scenesBind } from './Scenes';
 import { EventBus } from '../../common/core/EventBus';
 
 export class SceneManager implements ISceneManager {
-  private static _instance: SceneManager | null = null;
+  private static _instance: SceneManager = null!;
 
   /** 初始化场景管理器（应用启动时调用一次，内部自动 bind 到 Scenes） */
   static init(): SceneManager {

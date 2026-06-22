@@ -22,11 +22,8 @@ const { ccclass, help, menu, property } = _decorator;
 @menu('BriefToolkit/UIM/SkinSetting')
 export class SkinSetting extends Component {
   @property(JsonAsset)
-  private _skinItem: JsonAsset = null;
-  @property({
-    type: JsonAsset,
-    tooltip: "皮肤 JSON 配置",
-  })
+  private _skinItem: JsonAsset = null!;
+  @property({ type: JsonAsset, tooltip: "皮肤 JSON 配置" })
   get skinItem() {
     return this._skinItem;
   }

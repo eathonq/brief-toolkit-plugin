@@ -27,7 +27,6 @@ const { ccclass, help, menu, property, requireComponent } = _decorator;
 @requireComponent(Sprite)
 @menu('BriefToolkit/UIM/SkinSprite')
 export class SkinSprite extends Component {
-
   /**
    * 获取皮肤信息
    * @param node 
@@ -39,9 +38,7 @@ export class SkinSprite extends Component {
     return skin.info;
   }
 
-  @property({
-    tooltip: '皮肤标识',
-  })
+  @property({ tooltip: '皮肤标识' })
   key: string = "";
 
   private _info: SkinItemDef;

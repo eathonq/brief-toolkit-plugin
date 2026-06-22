@@ -30,7 +30,7 @@ export interface IGuideCompletionStorage {
 let _currentGuideManager: IGuideManager | undefined;
 
 /** 引导完成状态存储（由任务系统注入） */
-let _completionStorage: IGuideCompletionStorage | null = null;
+let _completionStorage: IGuideCompletionStorage = null!;
 
 /**
  * @internal 绑定 Manager（由 GuideManager.instance 自动调用）

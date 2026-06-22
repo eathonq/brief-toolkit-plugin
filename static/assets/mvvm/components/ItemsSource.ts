@@ -29,7 +29,6 @@ const { ccclass, help, executeInEditMode, menu, property } = _decorator;
 @executeInEditMode
 @menu('BriefToolkit/Mvvm/ItemsSource')
 export class ItemsSource extends DataContext {
-
   /** 
    * 获取绑定的数据
    * @param node 有挂载 ItemsSource 的节点
@@ -40,10 +39,7 @@ export class ItemsSource extends DataContext {
     return context._data as T;
   }
 
-  @property({
-    type: [Node],
-    tooltip: '模板节点（多个支持按数据类型选择）',
-  })
+  @property({ type: [Node], tooltip: '模板节点（多个支持按数据类型选择）' })
   private templates: Node[] = [];
 
   @property({
@@ -58,15 +54,13 @@ export class ItemsSource extends DataContext {
 
   @property
   private _isSelected: boolean = false;
-  @property({
-    tooltip: '是否绑定选中项',
-  })
+  @property({ tooltip: '是否绑定选中项' })
   get isSelected() {
     return this._isSelected;
   }
   private set isSelected(value) {
     this._isSelected = value;
-    this.updateEditorBindingSelectedEnums();
+    this._updateEditorBindingSelectedEnums();
   }
 
   @property({
@@ -101,7 +95,7 @@ export class ItemsSource extends DataContext {
 
   //#region EDITOR
 
-  private updateEditorBindingSelectedEnums() {
+  private _updateEditorBindingSelectedEnums() {
     if (!this._isSelected) return;
     if (!this.parent) return;
 
@@ -155,11 +149,11 @@ export class ItemsSource extends DataContext {
 
   protected onLoad() {
     this.bindDataKind = DataKind.Array;
-    this.initTemplate();
+    this._initTemplate();
 
     super.onLoad();
     if (EDITOR) {
-      this.updateEditorBindingSelectedEnums();
+      this._updateEditorBindingSelectedEnums();
       return;
     }
   }
@@ -176,10 +170,10 @@ export class ItemsSource extends DataContext {
   }
 
   /** 观察函数 */
-  private _itemsWatchHandle: WatchHandle | null = null;
+  private _itemsWatchHandle: WatchHandle = null!;
   protected onUpdateDataInternal() {
     if (!Array.isArray(this._data)) {
-      this.initItems([]);
+      this._initItems([]);
       return;
     }
 
@@ -195,26 +189,26 @@ export class ItemsSource extends DataContext {
     // 使用 callback.length === 1 让运行时走 WatchCallback 路径
     arrayCb = (operation: any) => {
       if (!operation) {
-        this.initItems(dataList);
+        this._initItems(dataList);
         return;
       }
       if (operation.deletedStart != null && operation.deletedStart >= 0 && operation.deleted) {
         for (let i = 0; i < operation.deleted.length; i++) {
-          this.deleteItemByIndex(operation.deletedStart, operation.deleted[i]);
+          this._deleteItemByIndex(operation.deletedStart, operation.deleted[i]);
         }
       }
       if (operation.insertedStart != null && operation.insertedStart >= 0 && operation.inserted) {
         for (let i = 0; i < operation.inserted.length; i++) {
           let item = operation.inserted[i];
-          this.addItem(operation.insertedStart + i, item);
+          this._addItem(operation.insertedStart + i, item);
         }
       }
     };
     this._itemsWatchHandle = watch(() => dataList.length, arrayCb as any, { immediate: true });
   }
 
-  private _content: Node = null;
-  private initTemplate() {
+  private _content: Node = null!;
+  private _initTemplate() {
     if (EDITOR) return;
 
     if (this.templates.length === 0) {
@@ -240,7 +234,7 @@ export class ItemsSource extends DataContext {
   }
 
   private _nodeList: Node[] = [];
-  private initItems(dataList: unknown[]) {
+  private _initItems(dataList: unknown[]) {
     // 清理 — 回池而非销毁
     this._nodeList = [];
     if (this._content) {
@@ -251,12 +245,12 @@ export class ItemsSource extends DataContext {
     }
     if (dataList && dataList.length > 0) {
       dataList.forEach((item, index) => {
-        this.addItem(index, item);
+        this._addItem(index, item);
       });
     }
   }
 
-  private addItem(index: number, data: unknown) {
+  private _addItem(index: number, data: unknown) {
     if (index < 0) return;
     if (this.templates.length === 0 || !this._content) return;
 
@@ -286,7 +280,7 @@ export class ItemsSource extends DataContext {
     }
   }
 
-  private deleteItemByIndex(index: number, deletedData?: unknown) {
+  private _deleteItemByIndex(index: number, deletedData?: unknown) {
     if (index < 0) return;
     if (index >= this._nodeList.length) return;
 
@@ -304,7 +298,7 @@ export class ItemsSource extends DataContext {
     this._nodeList.splice(index, 1);
   }
 
-  private getItemIndex(node: Node) {
+  private _getItemIndex(node: Node) {
     if (!this._content) return -1;
     let template = node;
     while (template) {
@@ -329,7 +323,7 @@ export class ItemsSource extends DataContext {
 
     // 内部访问 Binding 的私有属性（运行时多态）
     const b = target as unknown as { node: Node; _bindingName: string; _bindingType: string };
-    let index = this.getItemIndex(b.node);
+    let index = this._getItemIndex(b.node);
     if (index < 0) return null;
 
     // 基础类型数据，重新设置上级数据和绑定名称
@@ -345,7 +339,7 @@ export class ItemsSource extends DataContext {
     if (!this._registry.has(target)) return;
 
     const bindingTarget = target as unknown as { node: Node };
-    let index = this.getItemIndex(bindingTarget.node);
+    let index = this._getItemIndex(bindingTarget.node);
     if (index < 0) return;
 
     (this._data as unknown[]).splice(index, 1);

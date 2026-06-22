@@ -55,4 +55,4 @@ export type {
   DeepPath,
   TypedBinding,
   WatchCallbackFor,
-} from './core/mvvmType';
+} from './core/MvvmType';

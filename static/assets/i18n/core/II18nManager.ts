@@ -24,7 +24,6 @@ export enum I18nLabelMode {
  *              ViewModel 层通过 I18n 静态门面调用，永不直接依赖实现类。
  */
 export interface II18nManager {
-
   /** 当前语言代码 */
   readonly language: string;
 

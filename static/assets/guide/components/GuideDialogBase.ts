@@ -32,18 +32,11 @@ const DIALOG_PRIORITY: Direction[] = ['bottom', 'top', 'right', 'left'];
 @ccclass('guide.GuideDialogBase')
 @menu('BriefToolkit/Guide/GuideDialogBase')
 export class GuideDialogBase extends Component implements IGuideDialog {
+  @property({ type: Label, tooltip: '标题 Label，show 时自动填入 step.title' })
+  protected titleLabel: Label = null!;
 
-  @property({
-    type: Label,
-    tooltip: '标题 Label，show 时自动填入 step.title',
-  })
-  protected titleLabel: Label | null = null;
-
-  @property({
-    type: Label,
-    tooltip: '描述 Label，show 时自动填入 step.description',
-  })
-  protected descriptionLabel: Label | null = null;
+  @property({ type: Label, tooltip: '描述 Label，show 时自动填入 step.description' })
+  protected descriptionLabel: Label = null!;
 
   /** 当前步骤索引（子类可读取，用于进度指示器） */
   protected _stepIndex: number = -1;
@@ -52,7 +45,7 @@ export class GuideDialogBase extends Component implements IGuideDialog {
   protected _totalSteps: number = 0;
 
   /** 延迟定位回调引用（用于 unschedule 取消） */
-  private _deferredPosition: (() => void) | null = null;
+  private _deferredPosition: (() => void) = null!;
 
   /**
    * 步骤间过渡动画时长（秒），默认 0.3。

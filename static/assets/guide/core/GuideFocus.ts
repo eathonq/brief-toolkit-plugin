@@ -51,32 +51,28 @@ interface OverlayCfg {
  * ```
  */
 export class GuideFocus implements IGuideFocus {
-  // ── 公开属性 ──
+  private _node: Node = null!;
+  get node(): Node { return this._node; }
 
-  private _node!: Node;
-  public get node(): Node { return this._node; }
+  private _uiLayer: Node = null!;
+  get uiLayer(): Node { return this._uiLayer; }
 
-  private _uiLayer!: Node;
-  public get uiLayer(): Node { return this._uiLayer; }
-
-  get hasFocus(): boolean { return this.target !== null; }
-  get currentTarget(): Node | null { return this.target; }
-
-  // ── 私有状态 ──
-
-  private _maskNode: Node | null = null;
-  private _overlay: OverlayCfg | null = null;
+  private _maskNode: Node = null!;
+  private _overlay: OverlayCfg = null!;
 
   /** MaskNode 上的 Graphics（定义镂空形状） */
-  private _maskGfx!: Graphics;
+  private _maskGfx: Graphics = null!;
 
   /** 当前高亮目标 */
-  private target: Node | null = null;
+  private _target: Node = null!;
+  get hasFocus(): boolean { return this._target !== null; }
+  get currentTarget(): Node | null { return this._target; }
+
   /** 当前镂空矩形（为 null 表示从未绘制过） */
-  private _currentRect: CutoutRect | null = null;
+  private _currentRect: CutoutRect = null!;
 
   /** 活跃的 tween */
-  private _activeTween: Tween<any> | null = null;
+  private _activeTween: Tween<any> = null!;
 
   /** 当前样式 */
   private _style: FocusStyle;
@@ -140,7 +136,7 @@ export class GuideFocus implements IGuideFocus {
     const newRect = this._calcCutoutRect(ut, this._style.margin);
 
     this._node.active = true;
-    this.target = target;
+    this._target = target;
 
     const dur = snap ? 0 : this._style.switchDuration;
     const wasFocused = this._currentRect !== null;
@@ -170,7 +166,7 @@ export class GuideFocus implements IGuideFocus {
   }
 
   clearFocus(snap?: boolean): void {
-    if (!this.target) return;
+    if (!this._target) return;
     this._stopActiveTween();
     this._doClear();
   }
@@ -237,8 +233,8 @@ export class GuideFocus implements IGuideFocus {
   private _initTouchEvents(touchNode: Node): void {
     touchNode.on(Input.EventType.TOUCH_START, (touch: EventTouch) => {
       if (!this._blockTouch) { touch.preventSwallow = true; return; }
-      if (!this.target) return;
-      const r = this.target.getComponent(UITransform)!.getBoundingBoxToWorld();
+      if (!this._target) return;
+      const r = this._target.getComponent(UITransform)!.getBoundingBoxToWorld();
       if (r.contains(touch.getLocation())) {
         touch.preventSwallow = true;
       } else {
@@ -250,7 +246,7 @@ export class GuideFocus implements IGuideFocus {
       .forEach(type => {
         touchNode.on(type, (touch: EventTouch) => {
           if (!this._blockTouch) { touch.preventSwallow = true; return; }
-          if (!this.target) return;
+          if (!this._target) return;
           touch.preventSwallow = true;
         }, touchNode);
       });
@@ -323,7 +319,7 @@ export class GuideFocus implements IGuideFocus {
     g.clear();
     g.fillColor = new Color(mc.r, mc.g, mc.b, alpha);
     g.fillRect(-this._overlay.screenW / 2, -this._overlay.screenH / 2,
-                this._overlay.screenW, this._overlay.screenH);
+      this._overlay.screenW, this._overlay.screenH);
   }
 
   /** 显示 overlay（激活节点）。showMask=false 时 no-op */
@@ -363,7 +359,7 @@ export class GuideFocus implements IGuideFocus {
 
   /** 内部清理 */
   private _doClear(): void {
-    this.target = null;
+    this._target = null;
     this._currentRect = null;
     this._maskGfx.clear();
 

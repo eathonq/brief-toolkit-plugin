@@ -31,7 +31,7 @@ const I18N_ASSET_PATH = "i18n";
 export class I18nSetting extends Component {
   // 默认语言资源
   @property(JsonAsset)
-  private _defaultAsset: JsonAsset = null;
+  private _defaultAsset: JsonAsset = null!;
   @property({
     type: JsonAsset,
     tooltip: "默认语言配置文件",

@@ -17,7 +17,6 @@ import { decoratorData } from "./DecoratorData";
  * @help https://vangagh.gitbook.io/brief-toolkit/mvvm/decorator
  */
 export namespace _decorator {
-
   //#region vm
   /**
    * ViewModel 装饰器

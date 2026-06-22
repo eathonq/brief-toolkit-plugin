@@ -38,25 +38,15 @@ enum FocusShapeEnum {
 @executeInEditMode
 @menu('BriefToolkit/Guide/GuideSetting')
 export class GuideSetting extends Component {
-
-  @property({
-    type: JsonAsset,
-    tooltip: '引导任务配置文件，内容为 GuideTask {key, steps} 数据',
-  })
-  private guideConfig: JsonAsset | null = null;
+  @property({ type: JsonAsset, tooltip: '引导任务配置文件，内容为 GuideTask {key, steps} 数据' })
+  private guideConfig: JsonAsset = null!;
 
   // ── 聚焦配置 ──
 
-  @property({
-    tooltip: '显示遮罩（关闭后镂空区域外无颜色遮挡）',
-    displayName: 'Mask',
-  })
+  @property({ tooltip: '显示遮罩（关闭后镂空区域外无颜色遮挡）', displayName: 'Mask' })
   private enableMask: boolean = true;
 
-  @property({
-    tooltip: '遮罩颜色（默认半透明黑色）',
-    visible() { return (this as any).enableMask; },
-  })
+  @property({ tooltip: '遮罩颜色（默认半透明黑色）', visible() { return (this as any).enableMask; } })
   private maskColor: Color = new Color(0, 0, 0, 180);
 
   @property({
@@ -79,17 +69,12 @@ export class GuideSetting extends Component {
   })
   private focusMargin: number = 8;
 
-  @property({
-    tooltip: '聚焦窗口与其它引导元素（对话框、指示器）的间距（px）',
-  })
+  @property({ tooltip: '聚焦窗口与其它引导元素（对话框、指示器）的间距（px）' })
   private focusGap: number = 8;
 
   // ── 对话配置 ──
 
-  @property({
-    tooltip: '启用引导对话',
-    displayName: 'Dialog',
-  })
+  @property({ tooltip: '启用引导对话', displayName: 'Dialog', })
   private enableDialog: boolean = true;
 
   @property({
@@ -97,14 +82,11 @@ export class GuideSetting extends Component {
     tooltip: '对话框节点（根节点需挂载继承自 GuideDialogBase 的自定义组件）',
     visible() { return (this as any).enableDialog; },
   })
-  private dialogPrefab: Prefab | null = null;
+  private dialogPrefab: Prefab = null!;
 
   // ── 指示器配置 ──
 
-  @property({
-    tooltip: '启用引导指示器',
-    displayName: 'Pointer',
-  })
+  @property({ tooltip: '启用引导指示器', displayName: 'Pointer' })
   private enablePointer: boolean = true;
 
   @property({
@@ -112,16 +94,16 @@ export class GuideSetting extends Component {
     tooltip: '指示器 Prefab（根节点需挂载继承自 GuidePointerBase 的自定义组件）',
     visible() { return (this as any).enablePointer; },
   })
-  private pointerPrefab: Prefab | null = null;
+  private pointerPrefab: Prefab = null!;
 
   // ── 生命周期 ──
 
   protected onLoad(): void {
     if (EDITOR) return;
-    this.initGuide();
+    this._initGuide();
   }
 
-  private initGuide(): void {
+  private _initGuide(): void {
     // 构建聚焦样式
     const focusStyle: Partial<FocusStyle> = {
       shape: FocusShapeEnum[this.focusShape] as FocusShape,

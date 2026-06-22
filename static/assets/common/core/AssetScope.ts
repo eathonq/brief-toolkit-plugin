@@ -33,19 +33,17 @@ import { CCAssets } from './CCAssets';
 
 /** 资源作用域 */
 export class AssetScope {
-  /** 作用域名（调试用） */
-  private _name: string;
-
-  /** 本 Scope 追踪的所有资源路径（供 releaseAll 使用） */
-  private _raws = new Set<string>();
-
   constructor(name: string) {
     this._name = name;
   }
 
+  /** 作用域名（调试用） */
+  private _name: string;
   /** 作用域名 */
   get name(): string { return this._name; }
 
+  /** 本 Scope 追踪的所有资源路径（供 releaseAll 使用） */
+  private _raws = new Set<string>();
   /** 已追踪的资源路径数量 */
   get rawCount(): number { return this._raws.size; }
 

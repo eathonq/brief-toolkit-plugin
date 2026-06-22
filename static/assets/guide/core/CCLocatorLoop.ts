@@ -33,7 +33,7 @@ export class CCLocatorLoop {
    * @param locator 定位地址
    * @returns 名称数组
    */
-  private static parseLocatorTokens(locator: string): string[] {
+  private static _parseLocatorTokens(locator: string): string[] {
     const tokens = locator.split('>').map((part) => part.trim());
     for (let i = 0; i < tokens.length; i++) {
       if (!tokens[i]) {
@@ -50,7 +50,7 @@ export class CCLocatorLoop {
    * @param tokens 解析后的分段名称
    * @returns Node | null
    */
-  private static queryByTokens(root: Node, tokens: string[]): Node | null {
+  private static _queryByTokens(root: Node, tokens: string[]): Node | null {
     if (!root || !root.isValid || tokens.length === 0) {
       return null;
     }
@@ -81,7 +81,7 @@ export class CCLocatorLoop {
    * @param options 定位选项
    * @returns {Promise<Node | null>} 节点
    */
-  private static async pollLocateNode(
+  private static async _pollLocateNode(
     root: Node,
     tokens: string[],
     start: number,
@@ -92,7 +92,7 @@ export class CCLocatorLoop {
     }
 
     // 节点查询（按 token 分段递归）
-    const node = this.queryByTokens(root, tokens);
+    const node = this._queryByTokens(root, tokens);
 
     // 节点返回
     if (node && (options.includeInactive || node.activeInHierarchy)) {
@@ -105,7 +105,7 @@ export class CCLocatorLoop {
       }
       return await new Promise((resolve) => {
         setTimeout(() => {
-          resolve(this.pollLocateNode(root, tokens, start, options));
+          resolve(this._pollLocateNode(root, tokens, start, options));
         }, options.timeout_ms);
       });
     }
@@ -139,14 +139,14 @@ export class CCLocatorLoop {
       includeInactive: mergedOptions.includeInactive ?? defaultLocateOptions.includeInactive!,
     };
 
-    const tokens = this.parseLocatorTokens(locator);
+    const tokens = this._parseLocatorTokens(locator);
     if (tokens.length === 0) {
       console.warn('Locator parse failed: ' + locator);
       return null;
     }
 
     const start = Date.now();
-    return this.pollLocateNode(root || director.getScene(), tokens, start, normalizedOptions);
+    return this._pollLocateNode(root || director.getScene(), tokens, start, normalizedOptions);
   }
 
   /**
