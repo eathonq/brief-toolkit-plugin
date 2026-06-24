@@ -5,13 +5,13 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.1.0
+ * @version v1.2.0
  * 
  * @created 2023-03-02
- * @modified 2026-06-10
+ * @modified 2026-06-25
  */
 
-import { _decorator, Node, Enum, Sprite, Button, CCClass, Label, ProgressBar } from 'cc';
+import { _decorator, Node, Enum, Sprite, Button, CCClass, Label, ProgressBar, Component } from 'cc';
 import { EDITOR } from 'cc/env';
 import { watch, WatchHandle } from '../core/Reactive';
 import { CCElement } from '../core/CCElement';
@@ -194,6 +194,12 @@ export class Binding extends CCElement {
         ]);
         break;
       case Sprite.name:
+        newEnums.push(...[
+          { name: 'OneWay', value: count++, mode: BindingMode.OneWay },
+          { name: 'OneTime', value: count++, mode: BindingMode.OneTime },
+        ]);
+        break;
+      case Component.name:
         newEnums.push(...[
           { name: 'OneWay', value: count++, mode: BindingMode.OneWay },
           { name: 'OneTime', value: count++, mode: BindingMode.OneTime },

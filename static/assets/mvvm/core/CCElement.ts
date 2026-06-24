@@ -6,13 +6,13 @@
  * 
  * @author eathonq
  * @license MIT
- * @version v1.0.0
+ * @version v1.2.0
  * 
  * @created 2023-03-02
- * @modified 2026-03-11
+ * @modified 2026-06-25
  */
 
-import { _decorator, Component, Node, Label, RichText, EditBox, Toggle, Button, Slider, ProgressBar, PageView, Sprite, ToggleContainer, Enum, CCClass, EventHandler, CCString } from 'cc';
+import { _decorator, Component, Node, Label, RichText, EditBox, Toggle, Button, Slider, ProgressBar, PageView, Sprite, ToggleContainer, UITransform, Enum, CCClass, EventHandler } from 'cc';
 import { EDITOR } from 'cc/env';
 import { DataKind } from './DecoratorData';
 import { AssetScopeManager } from '../../common/core/AssetScopeManager';
@@ -205,6 +205,17 @@ export class CCElement extends Component {
             setValue: (value) => this._setNodeCustomValue(value)
           }
         ]
+      },
+      {
+        name: Component.name,
+        component: Component,
+        binding: [
+          {
+            name: 'property',
+            kind: [DataKind.Boolean, DataKind.Number, DataKind.String, DataKind.Object],
+            setValue: (value) => this._setComponentPropertyValue(value)
+          }
+        ]
       }
     ];
   }
@@ -306,6 +317,55 @@ export class CCElement extends Component {
   })
   private customEventData: string = "";
 
+  @property
+  protected _componentTargetName = "";
+  private _componentTargetEnums: { name: string, value: number }[] = [];
+  private _componentTarget = 0;
+  /** 用户组件选择 */
+  @property({
+    type: Enum({}),
+    displayName: 'ComponentTarget',
+    tooltip: '目标用户组件',
+    visible() {
+      return this._elementName === 'Component';
+    },
+    displayOrder: 1.1,
+  })
+  get componentTarget() {
+    return this._componentTarget;
+  }
+  protected set componentTarget(value) {
+    this._componentTarget = value;
+    if (this._componentTargetEnums[value]) {
+      this._componentTargetName = this._componentTargetEnums[value].name;
+      this._updateEditorComponentPropertyEnums();
+    }
+  }
+
+  @property
+  protected _componentPropertyName = "";
+  private _componentPropertyEnums: { name: string, value: number }[] = [];
+  private _componentPropertyIndex = 0;
+  /** 用户组件目标属性 */
+  @property({
+    type: Enum({}),
+    displayName: 'ComponentProperty',
+    tooltip: '目标用户组件的属性',
+    visible() {
+      return this._elementName === 'Component';
+    },
+    displayOrder: 2.1,
+  })
+  get componentProperty() {
+    return this._componentPropertyIndex;
+  }
+  protected set componentProperty(value) {
+    this._componentPropertyIndex = value;
+    if (this._componentPropertyEnums[value]) {
+      this._componentPropertyName = this._componentPropertyEnums[value].name;
+    }
+  }
+
   // @property({
   //   type: [CCString],
   //   tooltip: '绑定方法自定义参数数组',
@@ -321,6 +381,8 @@ export class CCElement extends Component {
   onRestore() {
     this._elementName = '';
     this._propertyName = '';
+    this._componentTargetName = '';
+    this._componentPropertyName = '';
     this.checkEditorComponent();
   }
 
@@ -335,7 +397,15 @@ export class CCElement extends Component {
     this._identifyList = [];
     for (let i = 0; i < this._elementRegistry.length; i++) {
       const element = this._elementRegistry[i];
-      if (element.component === Node || this.node.getComponent(element.component)) {
+      if (element.component === Node) {
+        this._identifyList.push(element);
+      }
+      else if (element.component === Component) {
+        if (this._hasUserComponent()) {
+          this._identifyList.push(element);
+        }
+      }
+      else if (this.node.getComponent(element.component)) {
         this._identifyList.push(element);
       }
     }
@@ -389,8 +459,84 @@ export class CCElement extends Component {
     this.bindingProperty = 0;
   }
 
+  private _updateEditorComponentTargetEnums() {
+    if (this._elementName !== Component.name) {
+      this._componentTarget = 0;
+      this._componentTargetEnums = [];
+      return;
+    }
+
+    const userComps = this._getUserComponents();
+    const newEnums: { name: string, value: number }[] = [];
+    for (let i = 0; i < userComps.length; i++) {
+      newEnums.push({ name: userComps[i].constructor.name, value: i });
+    }
+
+    this._componentTargetEnums = newEnums;
+    CCClass.Attr.setClassAttr(this, 'componentTarget', 'enumList', newEnums);
+
+    if (this._componentTargetName !== '' && newEnums.length > 0) {
+      const findIndex = newEnums.findIndex((item) => item.name === this._componentTargetName);
+      if (findIndex !== -1) {
+        this.componentTarget = findIndex;
+        return;
+      }
+    }
+    this.componentTarget = 0;
+  }
+
+  private _updateEditorComponentPropertyEnums() {
+    if (this._elementName !== Component.name) {
+      this._componentPropertyIndex = 0;
+      this._componentPropertyEnums = [];
+      return;
+    }
+
+    const comp = this._getUserComponent();
+    if (!comp) {
+      this._componentPropertyIndex = 0;
+      this._componentPropertyEnums = [];
+      return;
+    }
+
+    const baseKeys = new Set([
+      '_name', '_objFlags', '_enabled',
+      'node', 'uuid', '_id', '__scriptAsset', '_prefab',
+      'gizmo', 'iconGizmo', 'persistentGizmo',  // 编辑器注入
+    ]);
+
+    const newEnums: { name: string, value: number }[] = [];
+    let count = 0;
+
+    for (const key of Object.keys(comp)) {
+      if (baseKeys.has(key)) continue;
+      if (key.startsWith('__') || key.startsWith('_')) continue;
+      // const val = (comp as any)[key];
+      // const type = typeof val;
+      // if (type === 'function') continue;
+      // if (type === 'string' || type === 'number' || type === 'boolean' || type === 'object') {
+      //   newEnums.push({ name: key, value: count++ });
+      // }
+      newEnums.push({ name: key, value: count++ });
+    }
+
+    this._componentPropertyEnums = newEnums;
+    CCClass.Attr.setClassAttr(this, 'componentProperty', 'enumList', newEnums);
+
+    if (this._componentPropertyName !== '' && newEnums.length > 0) {
+      const findIndex = newEnums.findIndex((item) => item.name === this._componentPropertyName);
+      if (findIndex !== -1) {
+        this.componentProperty = findIndex;
+        return;
+      }
+    }
+    this.componentProperty = 0;
+  }
+
   private _selectedComponent() {
     this._updateEditorPropertyEnums();
+    this._updateEditorComponentTargetEnums();
+    this._updateEditorComponentPropertyEnums();
   }
 
   protected selectedProperty() {
@@ -743,5 +889,39 @@ export class CCElement extends Component {
     (this.node as any)[MVVM_NODE_TAG_KEY] = this._toStringValue(value);
   }
 
+  //#endregion
+
+  //#region Custom Component
+
+  private _getUserComponents(): Component[] {
+    const registryNames = this._elementRegistry
+      .filter(e => e.component !== Node && e.component !== Component)
+      .map(e => e.component.name);
+
+    return this.node.getComponents(Component).filter(
+      c => !(c instanceof CCElement)
+        && !(c instanceof UITransform)
+        && registryNames.indexOf(c.constructor.name) === -1
+    );
+  }
+
+  private _hasUserComponent(): boolean {
+    return this._getUserComponents().length > 0;
+  }
+
+  private _getUserComponent(): Component | null {
+    const userComps = this._getUserComponents();
+    if (userComps.length === 0 || !userComps[this._componentTarget]) {
+      console.warn(`PATH ${this.getNodePath()} 缺少用户自定义组件，绑定操作已忽略`);
+      return null;
+    }
+    return userComps[this._componentTarget];
+  }
+
+  private _setComponentPropertyValue(value: any) {
+    const comp = this._getUserComponent();
+    if (!comp || !this._componentPropertyName) return;
+    (comp as any)[this._componentPropertyName] = value;
+  }
   //#endregion
 }
