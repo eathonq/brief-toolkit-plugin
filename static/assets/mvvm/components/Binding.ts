@@ -206,6 +206,13 @@ export class Binding extends CCElement {
           ]);
           break;
         }
+        if (this._propertyName === 'tag') {
+          newEnums.push(...[
+            { name: 'OneWay', value: count++, mode: BindingMode.OneWay },
+            { name: 'OneTime', value: count++, mode: BindingMode.OneTime },
+          ]);
+          break;
+        }
       default:
         newEnums.push(...[
           { name: 'TwoWay', value: count++, mode: BindingMode.TwoWay },

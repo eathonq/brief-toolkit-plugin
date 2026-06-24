@@ -35,6 +35,8 @@ type Element = {
 
 const CC_ELEMENT_CLASS_NAME = 'private.CCElement';
 
+export const MVVM_NODE_TAG_KEY = '__mvvm_node_tag_key__';
+
 /**
  * Cocos Creator 元素
  * 用于识别元素的数据类型
@@ -196,6 +198,11 @@ export class CCElement extends Component {
             name: 'touch-end',
             kind: [DataKind.Function],
             bindCallback: () => this._bindNodeTouchCallback(Node.EventType.TOUCH_END)
+          },
+          {
+            name: 'tag',
+            kind: [DataKind.String],
+            setValue: (value) => this._setNodeCustomValue(value)
           }
         ]
       }
@@ -730,6 +737,10 @@ export class CCElement extends Component {
         this.node.off(eventType, callback, this);
       }
     });
+  }
+
+  private _setNodeCustomValue(value: any) {
+    (this.node as any)[MVVM_NODE_TAG_KEY] = this._toStringValue(value);
   }
 
   //#endregion
