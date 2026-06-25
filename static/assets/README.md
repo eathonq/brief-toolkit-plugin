@@ -98,7 +98,7 @@ EventBus.offByToken(token);
 | `DataContext` | 嵌套数据上下文，从上级取对象字段，暴露给下级 Binding / DataContext |
 | `ItemsSource` | 数组 → 模板节点列表，监听 push/pop/splice 增量更新，支持**模板选择器**（不同数据 → 不同模板） |
 | `Binding` | UI 属性 ↔ 数据字段，支持 `TwoWay` / `OneWay` / `OneTime` / `OneWayToSource` 四种模式 |
-| `CCElement` | UI 组件适配层：Label / EditBox / Sprite / Button / Toggle / Slider / ProgressBar / PageView / ToggleContainer / RichText / Node |
+| `CCElement` | UI 组件适配层：Label / EditBox / Sprite / Button / Toggle / Slider / ProgressBar / PageView / ToggleContainer / RichText / Node / Component（用户自定义组件 property + event 绑定） |
 
 ### 关键特性
 

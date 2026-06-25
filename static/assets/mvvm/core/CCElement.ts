@@ -16,6 +16,7 @@ import { _decorator, Component, Node, Label, RichText, EditBox, Toggle, Button, 
 import { EDITOR } from 'cc/env';
 import { DataKind } from './DecoratorData';
 import { AssetScopeManager } from '../../common/core/AssetScopeManager';
+import { ComponentProxy } from './ComponentProxy';
 import { batch } from './Reactive';
 
 const { ccclass, property, help, executeInEditMode } = _decorator;
@@ -25,6 +26,7 @@ type ElementBinding = {
   kind: DataKind[];
   setValue?: (value: any) => void;
   bindCallback?: () => void;
+  createData?: () => any;
 };
 
 type Element = {
@@ -50,6 +52,7 @@ export class CCElement extends Component {
   private readonly _elementRegistry: Element[] = this._createElementRegistry();
   private _runtimeSetHandler: ((value: any) => void) = null!;
   private _runtimeBindHandler: (() => void) = null!;
+  private _runtimeDataCreator: (() => any) = null!;
 
   private _createElementRegistry(): Element[] {
     return [
@@ -214,6 +217,11 @@ export class CCElement extends Component {
             name: 'property',
             kind: [DataKind.Boolean, DataKind.Number, DataKind.String, DataKind.Object],
             setValue: (value) => this._setComponentPropertyValue(value)
+          },
+          {
+            name: 'proxy',
+            kind: [DataKind.Proxy],
+            createData: () => new ComponentProxy(this._getUserComponent()!)
           }
         ]
       }
@@ -290,7 +298,8 @@ export class CCElement extends Component {
     displayName: 'Property',
     tooltip: '绑定元素属性（属性或方法）',
     visible() {
-      return this._elementName !== 'Component';
+      if (this._elementName !== 'Component') return true;
+      return this._propertyEnums.length > 1;
     },
     displayOrder: 2,
   })
@@ -355,7 +364,7 @@ export class CCElement extends Component {
     displayName: 'ComponentProperty',
     tooltip: '目标用户组件的属性',
     visible() {
-      return this._elementName === 'Component';
+      return this._elementName === 'Component' && this._propertyName === 'property';
     },
     displayOrder: 2.1,
   })
@@ -582,6 +591,7 @@ export class CCElement extends Component {
     this._clearRuntimeListeners();
     this._runtimeSetHandler = null;
     this._runtimeBindHandler = null;
+    this._runtimeDataCreator = null;
   }
 
   /** 暂停：清理 UI 事件监听（对象池回收用） */
@@ -614,6 +624,11 @@ export class CCElement extends Component {
     const bindingConfig = this._getRuntimeBindingConfig();
     this._runtimeSetHandler = bindingConfig?.setValue ?? null;
     this._runtimeBindHandler = bindingConfig?.bindCallback ?? null;
+    this._runtimeDataCreator = bindingConfig?.createData ?? null;
+  }
+
+  createRuntimeData(): any {
+    return this._runtimeDataCreator?.() ?? null;
   }
 
   protected setElementValue(value: any) {

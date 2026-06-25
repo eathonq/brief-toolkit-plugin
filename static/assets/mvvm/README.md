@@ -91,6 +91,7 @@ mvvm/
 ├── core/
 │   ├── BaseViewModel.ts         # VM 生命周期基类
 │   ├── CCElement.ts             # UI 组件适配层
+│   ├── ComponentProxy.ts        # 组件代理（call / asyncCall）
 │   ├── Decorator.ts             # @vm/@model/@prop/@func/@event
 │   ├── DecoratorData.ts         # 装饰器元数据注册表
 │   ├── ErrorBoundary.ts         # try-catch 隔离
@@ -325,14 +326,68 @@ const { vm, model, prop, func, event } = mvvm._decorator;
 | `Node` | `active` | Boolean / Number / String / Object |
 | `Node` | `position` | Vec |
 | `Node` | `touch-start/move/end` | Function |
+| `Node` | `tag` | String |
+| `Component` | `property` | Boolean / Number / String / Object |
+| `Component` | `proxy` | Proxy |
 
-### 9.3 静态访问 API
+### 9.3 自定义组件绑定（Component Element）
+
+仅适用于非内置的用户自定义组件（排除 Label、Button 等已支持组件）：
+
+1. 节点挂 `Binding`，`Element` 下拉选 `Component`
+2. `TargetComponent` 下拉选目标用户组件
+3. `Property` 下拉选 `property` → `TargetProperty` 下拉选组件属性名（model→view 单向写入）
+4. `Property` 下拉选 `proxy` → ViewModel 获得 `ComponentProxy` 代理对象，可调用组件任意方法
+
+`property` 示例：
+```
+Element=Component, TargetComponent=PlayerCtrl, Property=property, TargetProperty=hp, mode=OneWay
+→ 运行时 setElementValue(100) → playerCtrl.hp = 100
+```
+
+`event` 示例：
+```
+Element=Component, TargetComponent=PlayerCtrl, Property=proxy, Binding=componentProxy, mode=OneWay
+→ ViewModel 端 this.componentProxy.call('attack', damage)
+```
+
+### 9.4 静态访问 API
 
 ```ts
 BindingData.get<MyVM>(node);          // 获取绑定数据
 BindingData.get<MyVM>(node, true);    // 获取上级上下文
 DataContextData.get<MyVM>(node);      // 获取 DataContext 数据
 ItemsSourceData.get<Item[]>(node);    // 获取 ItemsSource 数组
+```
+
+### 9.5 ComponentProxy
+
+```ts
+import { ComponentProxy } from 'db://brief-toolkit-plugin/mvvm/pure';
+
+@vm('MyVM')
+class MyVM extends BaseViewModel {
+  @prop(ComponentProxy)
+  componentProxy!: ComponentProxy;
+
+  attack(damage: number) {
+    this.componentProxy?.call('onAttack', damage);     // → comp.onAttack(damage)
+  }
+
+  async loadData() {
+    await this.componentProxy?.asyncCall('fetchRemote'); // → await comp.fetchRemote()
+  }
+}
+```
+
+### 9.6 Node tag
+
+```ts
+import { MVVM_NODE_TAG_KEY } from 'db://brief-toolkit-plugin/mvvm/core/CCElement';
+
+// 写入（通过 Binding: Element=Node, Property=tag, mode=OneWay）
+// 读取
+const tag = node[MVVM_NODE_TAG_KEY];
 ```
 
 ---

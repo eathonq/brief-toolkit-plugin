@@ -10,6 +10,8 @@
  * @modified 2026-06-09
  */
 
+import { ComponentProxy } from './ComponentProxy';
+
 /** 装饰器类数据信息 */
 export enum DataKind {
   /** 未知类型 */
@@ -33,6 +35,9 @@ export enum DataKind {
 
   /** Vec类型 */
   Vec = 'vec',
+
+  /** Proxy类型（组件代理对象，用于调用组件方法） */
+  Proxy = 'proxy',
 }
 
 /** 扩展识别类型 */
@@ -106,6 +111,8 @@ function toDataKind(type: any) {
       return DataKind.Number;
     case Boolean:
       return DataKind.Boolean;
+    case ComponentProxy:
+      return DataKind.Proxy;
     default:
       if (is_array_type(type)) {
         return DataKind.Array;
@@ -138,6 +145,8 @@ function toTypeName(type: any) {
       return 'Number';
     case Boolean:
       return 'Boolean';
+    case ComponentProxy:
+      return 'Proxy';
     default:
       if (is_array_type(type)) {
         return toTypeName(type[0]);

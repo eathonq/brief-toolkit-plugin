@@ -309,9 +309,10 @@ export class Binding extends CCElement {
 
   protected selectedBinding() {
     if (this._parent) {
-      // 如果是函数，不设置默认值
+      // 如果是函数或 Proxy，不设置默认值
       const isFunc = this._elementKinds.indexOf(DataKind.Function) !== -1;
-      if (isFunc) return;
+      const isProxy = this._elementKinds.indexOf(DataKind.Proxy) !== -1;
+      if (isFunc || isProxy) return;
 
       let path = this._parent.path;
       if (this._bindingName !== this._bindingType) {
@@ -467,6 +468,12 @@ export class Binding extends CCElement {
     }
 
     this.setDataValue(this._data);
+
+    // 注入 ComponentProxy 代理到 ViewModel（如 componentProxy）
+    const eventData = this.createRuntimeData();
+    if (eventData) {
+      Reflect.set(upper, this._bindingName, eventData);
+    }
   }
 
   protected setDataValue(value: any) {

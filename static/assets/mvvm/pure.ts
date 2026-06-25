@@ -56,3 +56,6 @@ export type {
   TypedBinding,
   WatchCallbackFor,
 } from './core/MvvmType';
+
+// ──────────── 事件代理 ────────────
+export { ComponentProxy } from './core/ComponentProxy';
