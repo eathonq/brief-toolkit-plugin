@@ -929,11 +929,16 @@ export class CCElement extends Component {
 
   private _getUserComponent(): Component | null {
     const userComps = this._getUserComponents();
-    if (userComps.length === 0 || !userComps[this._componentTarget]) {
+    if (userComps.length === 0) {
       console.warn(`PATH ${this.getNodePath()} 缺少用户自定义组件，绑定操作已忽略`);
       return null;
     }
-    return userComps[this._componentTarget];
+    const comp = userComps.find(c => c.constructor.name === this._componentTargetName) || userComps[0];
+    if (!comp) {
+      console.warn(`PATH ${this.getNodePath()} 未找到组件 ${this._componentTargetName}，绑定操作已忽略`);
+      return null;
+    }
+    return comp;
   }
 
   private _setComponentPropertyValue(value: any) {
