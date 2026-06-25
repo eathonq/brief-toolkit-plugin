@@ -289,6 +289,9 @@ export class CCElement extends Component {
     type: Enum({}),
     displayName: 'Property',
     tooltip: '绑定元素属性（属性或方法）',
+    visible() {
+      return this._elementName !== 'Component';
+    },
     displayOrder: 2,
   })
   get bindingProperty() {
@@ -502,22 +505,37 @@ export class CCElement extends Component {
     const baseKeys = new Set([
       '_name', '_objFlags', '_enabled',
       'node', 'uuid', '_id', '__scriptAsset', '_prefab',
-      'gizmo', 'iconGizmo', 'persistentGizmo',  // 编辑器注入
+      '_sceneGetter', 'gizmo', 'iconGizmo', 'persistentGizmo',  // 编辑器注入
     ]);
 
+    const seen = new Set<string>();
     const newEnums: { name: string, value: number }[] = [];
     let count = 0;
 
+    // 扫描实例自有属性
     for (const key of Object.keys(comp)) {
       if (baseKeys.has(key)) continue;
       if (key.startsWith('__') || key.startsWith('_')) continue;
-      // const val = (comp as any)[key];
-      // const type = typeof val;
-      // if (type === 'function') continue;
-      // if (type === 'string' || type === 'number' || type === 'boolean' || type === 'object') {
-      //   newEnums.push({ name: key, value: count++ });
-      // }
+      seen.add(key);
       newEnums.push({ name: key, value: count++ });
+    }
+
+    // 扫描原型链上的 getter/setter（如 get data() / set data()）
+    let proto = Object.getPrototypeOf(comp);
+    while (proto && proto !== Component.prototype) {
+      const protoKeys = Object.getOwnPropertyNames(proto);
+      for (let i = 0; i < protoKeys.length; i++) {
+        const key = protoKeys[i];
+        if (seen.has(key)) continue;
+        if (baseKeys.has(key)) continue;
+        if (key.startsWith('__') || key.startsWith('_')) continue;
+        if (key === 'constructor') continue;
+        const desc = Object.getOwnPropertyDescriptor(proto, key);
+        if (!desc || (!desc.get && !desc.set)) continue;
+        seen.add(key);
+        newEnums.push({ name: key, value: count++ });
+      }
+      proto = Object.getPrototypeOf(proto);
     }
 
     this._componentPropertyEnums = newEnums;
