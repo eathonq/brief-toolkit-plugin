@@ -24,7 +24,7 @@ const { ccclass, property, menu } = _decorator;
 
 /** 资源作用域挂载组件 */
 @ccclass('AssetScopeMount')
-@menu('brief-toolkit/AssetScopeMount')
+@menu('BriefToolkit/Common/AssetScopeMount')
 export class AssetScopeMount extends Component {
   @property({
     tooltip: '作用域名（默认用场景名，栈式管理：建议 "battle" / "map" 等）',
