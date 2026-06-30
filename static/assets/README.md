@@ -1,6 +1,6 @@
 # brief-toolkit
 
-> Cocos Creator 3.8.8 生产级游戏框架插件 — 统一资源管理、统一事件总线（EventBus）、MVVM 数据绑定、UI 视图管理、国际化、引导系统、本地存储，六模块零耦合按需取用。
+> Cocos Creator 3.8.8 生产级游戏框架插件 — 统一资源管理、统一事件总线（EventBus）、MVVM 数据绑定、UI 视图管理、国际化、引导系统、本地存储、HTTP/WebSocket 网络工具，七模块零耦合按需取用。
 
 [🇨🇳 中文说明](#功能大纲) · [📖 模块文档](#模块总览)
 
@@ -10,7 +10,7 @@
 
 | 模块 | 版本 | 定位 | 依赖 |
 | :--- | :---: | :--- | :--- |
-| [Common](#common-公共资源管理) | v1.2 | 统一资源加载 + AssetScope 生命周期管理 + **统一事件总线（EventBus）** | 纯 TS 层零 `cc` 依赖（EventBus），Cocos 层 `cc` (SpriteFrame 等) |
+| [Common](#common-公共资源管理) | v1.3 | 统一资源加载 + AssetScope 生命周期管理 + **统一事件总线（EventBus）** + **HTTP/WebSocket 网络工具** | 纯 TS 层零 `cc` 依赖（EventBus / HttpClient / HttpTemplate / TokenManager / WebSocketClient），Cocos 层 `cc` (SpriteFrame 等) |
 | [MVVM](#mvvm-数据绑定框架) | v1.2 | 装饰器 + 响应式 + 列表渲染 + 对象池 + `@event`/`emit` 声明式事件通信 | 纯 TS 层零 `cc` 依赖 |
 | [UIM](#uim-视图管理器) | v1.2 | 视图 / 消息框 / 提示框 / 场景切换 / 音频 / 皮肤 | 静态门面 + Null Object 容错 |
 | [i18n](#i18n-国际化) | v1.2 | 文本 + 图片本地化，EventBus 驱动刷新，语言回退 + AssetScope 资源管理 | 静态门面 + Common (AssetScope + EventBus) |
@@ -21,7 +21,7 @@
 
 ## Common 公共资源管理
 
-**统一资源加载 + 统一事件总线：CCAssets 底层加载器 → AssetScope 作用域追踪 → AssetScopeManager 场景级自动管理 → AssetScopeMount 零代码接入。EventBus 是插件唯一公开事件 API，供各模块及外部代码统一使用。**
+**统一资源加载 + 统一事件总线 + 网络工具集：CCAssets 底层加载器 → AssetScope 作用域追踪 → AssetScopeManager 场景级自动管理 → AssetScopeMount 零代码接入。EventBus 是插件唯一公开事件 API。HttpClient / HttpTemplate / TokenManager / WebSocketClient 提供全平台（Web/Native/小游戏）HTTP + WebSocket 能力。**
 
 ### 四层架构
 
@@ -71,6 +71,107 @@ EventBus.offByToken(token);
 - **i18n**：`I18nManager` 内部 emit 到 EventBus，`I18nLabel`/`I18nSprite` 直接订阅
 - **外部模块**：从 `common/pure` 导入 `EventBus` 直接调用
 - 事件命名建议 `module:action` 格式（如 `inventory:item-acquired`）
+
+### HTTP/HTTPS 网络请求
+
+基于 `XMLHttpRequest` 的全平台 HTTP 客户端（Cocos 3.8.8 小游戏内部转发至 `wx.request`），零 `'cc'` 依赖。
+
+**httpClient — 自由请求**（网络错误/HTTP 4xx 5xx 时 reject）：
+
+```ts
+import { httpClient, TokenManager } from 'db://brief-toolkit-plugin/common';
+
+// 全局配置
+httpClient.baseUrl = 'https://api.example.com';
+
+// Token 管理（localStorage 持久化，7 天过期，自动 Bearer 前缀）
+TokenManager.token = 'your-jwt';
+
+// Auth 拦截器
+httpClient.addInterceptor({
+  request: (config) => {
+    if (TokenManager.bearerToken) config.headers = { ...config.headers, Authorization: TokenManager.bearerToken };
+    return config;
+  },
+});
+
+const res = await httpClient.get('/users');
+// res → { data: ..., status: 200 }
+```
+
+| 方法 | 说明 |
+|:---|:---|
+| `httpClient.get(url, config?)` / `post` / `put` / `patch` / `delete` | HTTP 请求 |
+| `httpClient.addInterceptor(i)` / `removeInterceptor(i)` | 拦截器管理 |
+| `TokenManager.token` | 读写 token |
+| `TokenManager.bearerToken` | 获取 `Bearer xxx` 格式 |
+| `TokenManager.setToken(t, days?, persist?)` | 自定义过期 |
+| `TokenManager.removeToken()` | 清除 |
+
+**HttpTemplate — 类型安全 API**（对齐 temp_demo 模式，永不 throw，返回 `ResData<T>` 信封）：
+
+```ts
+import { HttpTemplate, type IServerData, type ResData } from 'db://brief-toolkit-plugin/common';
+
+// 1) 定义 API 契约
+interface UserAPI extends IServerData {
+  get: {
+    'users':       { req: { query?: { page?: number } }; res: ResData<User[]> };
+    'users/:id':   { req: { params: { id: number } };    res: ResData<User> };
+  };
+  post: {
+    'users':       { req: { body: CreateUser };          res: ResData<User> };
+  };
+}
+
+// 2) 创建实例
+export const apiUser = new HttpTemplate<UserAPI>(httpClient, 'api/users');
+
+// 3) 调用 — 编译期类型检查，IDE 智能补全
+const list = await apiUser.get('users', { query: { page: 1 } });
+if (list.code === 0) console.log(list.data); // User[]
+
+await apiUser.post('users', { body: { name: 'test' } });
+```
+
+`ResData<T>` 信封：`code=0` 成功 / `-1` 业务失败 / `-2` 请求异常（永不 throw）。
+
+**URL 构建**：`{HttpTemplate.baseUrl}/{apiPrefix}/{path}?{query}`，`:paramName` 自动替换。
+
+### WebSocket 长连接
+
+Promise 风格 + 事件订阅，内置心跳保活 + 断线自动重连（指数退避 + 抖动）：
+
+```ts
+import { WebSocketClient, wsClient } from 'db://brief-toolkit-plugin/common';
+
+wsClient.configure({ url: 'ws://localhost:8080/ws' });
+
+// 事件订阅
+wsClient.on('message', (data) => console.log('收到:', data));
+wsClient.on('reconnecting', (n) => console.log(`重连第 ${n} 次`));
+wsClient.on('open', () => wsClient.send({ type: 'login' }));
+
+await wsClient.connect();
+wsClient.send({ type: 'chat', text: 'hello' });
+
+// RPC 请求-响应
+const reply = await wsClient.request({ method: 'getRank' }, 5000);
+
+wsClient.disconnect(); // 主动断开（不重连）
+```
+
+| 配置 | 默认 | 说明 |
+|:---|:---|:---|
+| `heartbeatInterval` | 30000 | 心跳间隔 ms，0 禁用 |
+| `heartbeatTimeout` | 5000 | 心跳超时 ms |
+| `reconnect` | true | 自动重连 |
+| `reconnectBaseInterval` | 1000 | 重连基础间隔 ms |
+| `reconnectMaxDelay` | 30000 | 重连最大间隔 ms |
+| `reconnectMaxAttempts` | -1 | 最大次数，-1 无限 |
+| `connectTimeout` | 10000 | 连接超时 ms |
+
+心跳协议：`{"__ws_ping":true}` ↔ `{"__ws_pong":true}`，服务端回传即可。
 
 ---
 

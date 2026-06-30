@@ -8,8 +8,20 @@
  * @version v1.2.0
  *
  * @created 2026-06-20
+ * @modified 2026-06-30
  */
 
 // ──────────── 统一事件总线 ────────────
 export { EventBus } from './core/EventBus';
 export type { SubscriptionToken, EventCallback } from './core/EventBus';
+
+// ──────────── 网络请求工具（零 'cc' 依赖）────────────
+export { httpClient } from './core/HttpClient';
+export { HttpTemplate } from './core/HttpTemplate';
+export { TokenManager } from './core/TokenManager';
+export type { IHttp, IHttpConfig, IHttpInterceptor } from './core/HttpClient';
+export type { IServerData, ResData, PaginateQuery, PaginatedResponse, ListSortItem } from './core/HttpTemplate';
+
+// ──────────── WebSocket 客户端（零 'cc' 依赖）────────────
+export { WebSocketClient, wsClient, WsReadyState } from './core/WebSocketClient';
+export type { WsConfig, WsEventType, WsCallback, WsSubscription } from './core/WebSocketClient';
