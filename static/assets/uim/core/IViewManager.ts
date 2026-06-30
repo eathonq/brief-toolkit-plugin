@@ -66,7 +66,7 @@ export interface IViewManager {
    * @param name 视图名称
    * @returns 视图类型
    */
-  getViewType<T extends string = string>(name: T): ViewType;
+  getViewType<T extends string = string>(name: T): ViewType | null;
 
   /**
    * 检查视图是否存在

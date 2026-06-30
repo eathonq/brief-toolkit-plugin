@@ -50,9 +50,9 @@ export const MVVM_NODE_TAG_KEY = '__mvvm_node_tag_key__';
 export class CCElement extends Component {
   private _disposers: Array<() => void> = [];
   private readonly _elementRegistry: Element[] = this._createElementRegistry();
-  private _runtimeSetHandler: ((value: any) => void) = null!;
-  private _runtimeBindHandler: (() => void) = null!;
-  private _runtimeDataCreator: (() => any) = null!;
+  private _runtimeSetHandler: ((value: any) => void) | null = null;
+  private _runtimeBindHandler: (() => void) | null = null;
+  private _runtimeDataCreator: (() => any) | null = null;
 
   private _createElementRegistry(): Element[] {
     return [
@@ -298,8 +298,8 @@ export class CCElement extends Component {
     displayName: 'Property',
     tooltip: '绑定元素属性（属性或方法）',
     visible() {
-      if (this._elementName !== 'Component') return true;
-      return this._propertyEnums.length > 1;
+      if ((this as any)._elementName !== 'Component') return true;
+      return (this as any)._propertyEnums.length > 1;
     },
     displayOrder: 2,
   })
@@ -323,7 +323,7 @@ export class CCElement extends Component {
     tooltip: '绑定方法自定义参数',
     displayName: 'CustomEventData',
     visible() {
-      return this._elementKinds.indexOf(DataKind.Function) != -1;
+      return (this as any)._elementKinds.indexOf(DataKind.Function) != -1;
     },
     displayOrder: 10,
   })
@@ -339,7 +339,7 @@ export class CCElement extends Component {
     displayName: 'ComponentTarget',
     tooltip: '目标用户组件',
     visible() {
-      return this._elementName === 'Component';
+      return (this as any)._elementName === 'Component';
     },
     displayOrder: 1.1,
   })
@@ -364,7 +364,7 @@ export class CCElement extends Component {
     displayName: 'ComponentProperty',
     tooltip: '目标用户组件的属性',
     visible() {
-      return this._elementName === 'Component' && this._propertyName === 'property';
+      return (this as any)._elementName === 'Component' && (this as any)._propertyName === 'property';
     },
     displayOrder: 2.1,
   })
@@ -804,7 +804,7 @@ export class CCElement extends Component {
 
   private _onToggleGroup(toggle: Toggle) {
     if (!toggle || !toggle.node) return;
-    const parent: Node = toggle.node.parent;
+    const parent = toggle.node.parent;
     if (!parent || EDITOR) return;
 
     // 获取位置索引

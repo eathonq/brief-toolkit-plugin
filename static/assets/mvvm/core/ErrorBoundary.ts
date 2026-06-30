@@ -14,7 +14,7 @@ import type { BaseViewModel } from './BaseViewModel';
 /** 全局错误处理器 */
 export type GlobalErrorHandler = (error: unknown, context?: string) => void;
 
-let _globalHandler: GlobalErrorHandler = null!;
+let _globalHandler: GlobalErrorHandler | null = null;
 
 /**
  * 错误边界工具

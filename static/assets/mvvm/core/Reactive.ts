@@ -492,7 +492,7 @@ const arrayInstrumentations: Record<string, Function> = {
 const readonlyArrayInstrumentations: Record<string, Function> = {
   push: function () {
     warnReadonly('push');
-    return (this as any[]).length;
+    return (this as any).length;
   },
   pop: function () {
     warnReadonly('pop');
@@ -504,7 +504,7 @@ const readonlyArrayInstrumentations: Record<string, Function> = {
   },
   unshift: function () {
     warnReadonly('unshift');
-    return (this as any[]).length;
+    return (this as any).length;
   },
   splice: function () {
     warnReadonly('splice');
@@ -660,7 +660,7 @@ const shallowMapInstrumentations: Record<string | symbol, Function> = {
   },
   forEach: function (this: Map<any, any>, callback: Function, thisArg?: any) {
     track(this, ITERATE_KEY);
-    return Map.prototype.forEach.call(this, callback, thisArg);
+    return Map.prototype.forEach.call(this, callback as any, thisArg);
   },
   values: function (this: Map<any, any>) {
     track(this, ITERATE_KEY);

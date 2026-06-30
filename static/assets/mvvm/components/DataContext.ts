@@ -37,7 +37,7 @@ export class DataContext extends Component {
     return context._data as T;
   }
 
-  private _isRoot = false;
+  private _isRoot: boolean = false;
   /** 是否数据上下文根数据  */
   get isRoot() {
     return this._isRoot;
@@ -56,14 +56,14 @@ export class DataContext extends Component {
   }
 
   @property
-  private _parent: DataContext = null!;
+  private _parent: DataContext | null = null;
   /** 数据上下文路径 */
   @property({
     tooltip: '数据上下文',
     displayName: 'DataContext',
     readonly: true,
     visible() {
-      return !this._isRoot;
+      return !(this as any)._isRoot;
     },
     displayOrder: 0,
   })
@@ -97,7 +97,7 @@ export class DataContext extends Component {
     type: Enum({}),
     tooltip: '绑定属性',
     visible() {
-      return !this._isRoot;
+      return !(this as any)._isRoot;
     },
   })
   get binding() {
@@ -151,8 +151,8 @@ export class DataContext extends Component {
   /** 组件绑定数据类型更新 */
   private _updateEditorBindingEnums() {
     // 设置绑定属性
-    const newEnums = [];
-    let dataList = decoratorData.getPropertyList(this._parent.bindingType);
+    const newEnums: { name: string; value: number; type: string }[] = [];
+    let dataList = decoratorData.getPropertyList(this._parent!.bindingType);
     if (dataList) {
       let count = 0;
       if (this._bindDataKind === DataKind.Object) {
@@ -265,7 +265,7 @@ export class DataContext extends Component {
   }
 
   /** 观察函数 */
-  private _watchHandle: WatchHandle = null!;
+  private _watchHandle: WatchHandle |null = null;
   /** 绑定数据更新，子类重写 */
   protected onUpdateData() {
     // 上下文数据异常，则不继续执行
@@ -349,8 +349,8 @@ export class DataContext extends Component {
    * @param self 自己的数据上下文（排除自己）
    * @returns 数据上下文节点
    */
-  static lookUp(current: Node, self?: DataContext): DataContext {
-    let node = current;
+  static lookUp(current: Node, self?: DataContext): DataContext | null {
+    let node: Node | null = current;
     while (node) {
       let dataContexts = node.getComponents(DataContext);
       if (dataContexts.length > 0) {
@@ -374,7 +374,7 @@ export class DataContext extends Component {
    * @param current 当前节点
    * @returns 数据上下文节点
    */
-  static lookDown(current: Node): DataContext {
+  static lookDown(current: Node): DataContext | null {
     let dataContext = current.getComponentInChildren(DataContext);
     if (dataContext) {
       return dataContext;

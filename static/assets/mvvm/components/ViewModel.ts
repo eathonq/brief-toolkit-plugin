@@ -122,8 +122,8 @@ export class ViewModel extends DataContext {
   /** @event 自动订阅产生的令牌，销毁时统一解绑 */
   private _eventTokens: SubscriptionToken[] = [];
   /** 应用前后台事件监听引用 */
-  private _gameShowHandler: (() => void) = null!;
-  private _gameHideHandler: (() => void) = null!;
+  private _gameShowHandler: (() => void) | null = null;
+  private _gameHideHandler: (() => void) | null = null;
 
   // ──────────── Runtime ────────────
 

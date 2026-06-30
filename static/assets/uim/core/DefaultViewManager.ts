@@ -22,7 +22,7 @@ export class DefaultViewManager implements IViewManager {
 
   // ── 查询 ──
 
-  getViewType<T extends string = string>(name: T): ViewType {
+  getViewType<T extends string = string>(name: T): ViewType | null {
     this._log('getViewType', name);
     return null;
   }
@@ -40,7 +40,7 @@ export class DefaultViewManager implements IViewManager {
   }
 
   getCurrentViewName(): string {
-    return null;
+    return "";
   }
 
   // ── 视图操作 ──

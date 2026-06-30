@@ -32,7 +32,7 @@ export class SkinSprite extends Component {
    * @param node 
    * @returns 
    */
-  static Info(node: Node): SkinItemDef {
+  static Info(node: Node): SkinItemDef | null {
     let skin = node.getComponent(SkinSprite);
     if (!skin) return null;
     return skin.info;
@@ -41,7 +41,7 @@ export class SkinSprite extends Component {
   @property({ tooltip: '皮肤标识' })
   key: string = "";
 
-  private _info: SkinItemDef;
+  private _info!: SkinItemDef;
   /** 皮肤信息 */
   get info() {
     return this._info;

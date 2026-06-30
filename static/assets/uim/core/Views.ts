@@ -82,7 +82,7 @@ export class Views {
     Views.current.backView(data);
   }
 
-  static closeView<T extends string = string>(name?: T): void {
+  static closeView<T extends string = string>(name: T): void {
     Views.current.closeView(name);
   }
 }

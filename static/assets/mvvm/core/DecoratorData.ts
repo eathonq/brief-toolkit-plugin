@@ -220,7 +220,7 @@ interface ClassData {
 
 /** 装饰器数据 */
 class DecoratorData {
-  private _currentClass: ClassData;
+  private _currentClass: ClassData | null = null;
   private _pendingOwnerName = '';
   private _classMap = new Map<string, ClassData>();
 

@@ -69,7 +69,7 @@ export class SkinManager implements ISkinManager {
     return this._stores.getAllThemes();
   }
 
-  getThemeItems(themeKey: string): SkinItem[] {
+  getThemeItems(themeKey: string): SkinItem[] | undefined {
     return this._stores.getThemeItems(themeKey);
   }
 

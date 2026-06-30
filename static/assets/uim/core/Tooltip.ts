@@ -72,8 +72,8 @@ export class Tooltip {
     if (!isShow) {
       return;
     }
-    if (data.timeout > 0) {
-      timer = setTimeout(doTimeout, data.timeout * 1000);
+    if ((data.timeout ?? 0) > 0) {
+      timer = setTimeout(doTimeout, (data.timeout ?? 0) * 1000);
       Tooltip._timerList.push(timer);
     }
   }

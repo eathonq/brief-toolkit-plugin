@@ -38,7 +38,7 @@ export class AudioManager implements IAudioManager {
 
     this._audioSourceMap = new Map<number, AudioSource>();
     this._audioClipCaches = new Map<string, AudioClip>();
-    this._audioClipLoadingTasks = new Map<string, Promise<AudioClip>>();
+    this._audioClipLoadingTasks = new Map<string, Promise<AudioClip | null>>();
 
     // 创建持久节点——跨场景存活
     this._persistNode = new Node('AudioManager');
@@ -60,7 +60,7 @@ export class AudioManager implements IAudioManager {
   private _oneShotAudioSource: AudioSource;
   private _audioSourceMap: Map<number, AudioSource>;
   private _audioClipCaches: Map<string, AudioClip>;
-  private _audioClipLoadingTasks: Map<string, Promise<AudioClip>>;
+  private _audioClipLoadingTasks: Map<string, Promise<AudioClip | null>>;
   private _assetScope: AssetScope = new AssetScope(ASSET_SCOPE_AUDIO);
 
   private _musicVolume = 1;
@@ -118,11 +118,11 @@ export class AudioManager implements IAudioManager {
 
   async playMusic(path?: string, loop?: boolean): Promise<void> {
     if (!this._musicSwitch) return;
-    let music: AudioClip = this.defaultMusicClip;
+    let music: AudioClip | null = this.defaultMusicClip;
     if (path) {
       music = await this._getOrCreateAudioClip(path);
     }
-    this.playMusicByClip(music, loop);
+    this.playMusicByClip(music ?? undefined, loop);
   }
 
   /** 播放背景音乐（按 AudioClip），不暴露到 IAudioManager */
@@ -133,7 +133,7 @@ export class AudioManager implements IAudioManager {
     if (this._musicAudioSource) {
       if (this._musicAudioSource.clip == music) {
         this._musicAudioSource.volume = this._musicVolume;
-        this._musicAudioSource.loop = checkUndefinedAndNull(loop) ? true : loop;
+        this._musicAudioSource.loop = checkUndefinedAndNull(loop) ? true : loop ?? false;
         if (this._musicAudioSource.playing) return;
         this._musicAudioSource.play();
         return;
@@ -143,7 +143,7 @@ export class AudioManager implements IAudioManager {
 
     this._musicAudioSource.clip = music;
     this._musicAudioSource.volume = this._musicVolume;
-    this._musicAudioSource.loop = checkUndefinedAndNull(loop) ? true : loop;
+    this._musicAudioSource.loop = checkUndefinedAndNull(loop) ? true : loop ?? false;
     this._musicAudioSource.play();
   }
 
@@ -152,7 +152,7 @@ export class AudioManager implements IAudioManager {
       this._musicSwitch = !this._musicSwitch;
     } else {
       if (this._musicSwitch === isSwitch) return this._musicSwitch;
-      this._musicSwitch = isSwitch;
+      this._musicSwitch = isSwitch ?? !this._musicSwitch;
     }
 
     if (this._musicAudioSource.clip == null) {
@@ -213,7 +213,7 @@ export class AudioManager implements IAudioManager {
     if (this._soundSwitch) {
       const audioClip = await this._getOrCreateAudioClip(path);
       if (audioClip) {
-        const finalVolume = clampVolume(checkUndefinedAndNull(volume) ? this._soundVolume : volume);
+        const finalVolume = clampVolume(volume ?? this._soundVolume);
         this._oneShotAudioSource.playOneShot(audioClip, finalVolume);
       }
     }
@@ -238,8 +238,8 @@ export class AudioManager implements IAudioManager {
         return -1;
       }
       audioSource.clip = audioClip;
-      audioSource.volume = clampVolume(checkUndefinedAndNull(volume) ? this._soundVolume : volume);
-      audioSource.loop = checkUndefinedAndNull(loop) ? false : loop;
+      audioSource.volume = clampVolume(volume ?? this._soundVolume);
+      audioSource.loop = loop ?? false;
       audioSource.play();
       return soundId;
     } catch (error) {
@@ -259,7 +259,7 @@ export class AudioManager implements IAudioManager {
       this._soundSwitch = !this._soundSwitch;
     } else {
       if (this._soundSwitch === isSwitch) return this._soundSwitch;
-      this._soundSwitch = isSwitch;
+      this._soundSwitch = isSwitch ?? false;
     }
     if (!this._soundSwitch) {
       for (const item of this._audioSourceMap.values()) {
@@ -326,7 +326,7 @@ export class AudioManager implements IAudioManager {
 
   // ── 内部 ──
 
-  private async _getOrCreateAudioClip(path: string): Promise<AudioClip> {
+  private async _getOrCreateAudioClip(path: string): Promise<AudioClip | null> {
     if (!path) return null;
     const cache = this._audioClipCaches.get(path);
     if (cache) return cache;

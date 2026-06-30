@@ -94,7 +94,7 @@ export interface ISkinManager {
    * @param themeKey 
    * @returns 
    */
-  getThemeItems(themeKey: string): SkinItem[];
+  getThemeItems(themeKey: string): SkinItem[] | undefined;
 
   /**
   * 切换主题

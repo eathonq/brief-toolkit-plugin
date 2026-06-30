@@ -112,7 +112,7 @@ export class CCAssets {
     }
 
     const promise = new Promise<AssetManager.Bundle | null>((resolve) => {
-      const option = version ? { version } : undefined;
+      const option = version ? { version } : null;
       assetManager.loadBundle(url ?? name, option, (err, _bundle) => {
         this._bundleLoadingMap.delete(name);
         if (err || !_bundle) {
@@ -138,7 +138,7 @@ export class CCAssets {
   ): Promise<SpriteFrame | null> {
     if (!path || path.trim() === '') return null;
 
-    const bundle = await this._loadBundle(bundleName ?? _res_);
+    const bundle = await this._loadBundle(bundleName);
     if (!bundle) return null;
 
     if (formate === 'spriteFrame') {
@@ -266,7 +266,7 @@ export class CCAssets {
     if (parsed.isRemote) {
       return this._loadRemoteSpriteFrame(parsed.path);
     }
-    return this._loadSpriteFrame(parsed.bundle, parsed.path, formate);
+    return this._loadSpriteFrame(parsed.bundle ?? _res_, parsed.path, formate);
   }
 
   /**
@@ -318,7 +318,7 @@ export class CCAssets {
   static async releasePath(raw: string): Promise<void> {
     const parsed = this._parsePath(raw);
     if (parsed.isRemote) return;
-    return this._releaseWithBundle(parsed.bundle, parsed.path);
+    return this._releaseWithBundle(parsed.bundle ?? _res_, parsed.path);
   }
 
   /**

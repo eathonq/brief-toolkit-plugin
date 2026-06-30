@@ -68,14 +68,14 @@ export class I18nManager implements II18nManager {
 
   private _assetPath = I18N_ASSET_PATH;
   private _languageAsset: JsonAsset = null!;
-  private _languageMeta: LanguageMeta = null!;
+  private _languageMeta: LanguageMeta | null = null;
   private _languageMap: Map<string, string> = new Map<string, string>();
   private _resourceScope: AssetScope = new AssetScope(ASSET_SCOPE_I18N);
 
   //#region 状态与回退
   /** @internal 内部防重入守卫，外部通过 EventBus 事件驱动 UI */
   private _isSwitching = false;
-  private _fallbackLanguage: string = null!;
+  private _fallbackLanguage: string | null = null;
   private _fallbackMap: Map<string, string> = new Map();
 
   /** 当前回退语言代码（未设置时返回 null） */
@@ -163,14 +163,14 @@ export class I18nManager implements II18nManager {
 
   /** 更新渲染器（刷新语言） */
   private _resetLanguage() {
-    const configData = this._languageAsset?.json;
+    const configData = this._languageAsset?.json as any;
     const languageMeta = toLanguageMeta(configData);
 
     if (this._languageMeta && languageMeta && this._languageMeta.code === languageMeta.code) {
       // 同语言版本切换，无需刷新渲染器
       return;
     }
-    
+
     this._languageMeta = languageMeta;
     if (!this._languageMeta) {
       console.error("I18nManager: Invalid language meta in default asset.");

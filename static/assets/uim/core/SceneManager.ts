@@ -54,7 +54,7 @@ export class SceneManager implements ISceneManager {
         // node.emit → 场景内组件（节点销毁自动清理）
         // EventBus.emit → 框架外全局观察者（persist 节点 / 非 Cocos 上下文）
         const newScene = director.getScene();
-        newScene.emit(SceneEvent, info);
+        newScene?.emit(SceneEvent, info);
         EventBus.emit(SceneEvent, info);
         resolve();
       });

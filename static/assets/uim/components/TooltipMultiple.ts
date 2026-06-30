@@ -73,7 +73,7 @@ export class TooltipMultiple extends ViewBase {
 
   private _getPath(node: Node, root: Node) {
     const path_list = [];
-    let findItem = node;
+    let findItem : Node | null = node;
     while (findItem && findItem.name !== 'Canvas') {
       if (findItem === root) {
         break;
@@ -88,7 +88,7 @@ export class TooltipMultiple extends ViewBase {
   private _getNode(path_list: string[], root: Node) {
     if (path_list.length === 0) return null;
 
-    let findItem = root;
+    let findItem: Node | null = root;
     for (let i = 0; i < path_list.length; i++) {
       const path = path_list[i];
       findItem = findItem.getChildByName(path);
@@ -123,7 +123,7 @@ export class TooltipMultiple extends ViewBase {
       item.destroy();
 
       // 判断父类是否还有子节点
-      if (this.template.parent.children.length === 1) {
+      if (this.template.parent?.children.length === 1) {
         this.doClose?.(this.viewName);
       }
     };
@@ -151,7 +151,7 @@ export class TooltipMultiple extends ViewBase {
     item.active = true;
 
     // 添加超时关闭
-    if (data.timeout > 0) {
+    if ((data.timeout ?? 0) > 0) {
       data.timeoutCallback = () => {
         onCloseItem();
       };

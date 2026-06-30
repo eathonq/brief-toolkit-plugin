@@ -78,7 +78,7 @@ export class I18nSprite extends Component {
 
   //#endregion
 
-  private _langToken: SubscriptionToken = null!;
+  private _langToken: SubscriptionToken | null = null;
 
   protected onLoad() {
     if (EDITOR) {
@@ -110,14 +110,14 @@ export class I18nSprite extends Component {
     // 编辑器模式下直接使用 I18nManager 的接口加载资源，以支持本地化预览功能
     if (EDITOR) {
       I18nManager.instance.resolveSpriteInEditor(imagePath).then((spriteFrame) => {
-        this._setComponentValue(spriteFrame);
+        if (spriteFrame) this._setComponentValue(spriteFrame);
       });
       return;
     }
 
     I18nManager.instance.loadImage(imagePath).then((spriteFrame) => {
       if (requestVersion !== this._resetVersion) return;
-      this._setComponentValue(spriteFrame);
+      if (spriteFrame) this._setComponentValue(spriteFrame);
     });
   }
 

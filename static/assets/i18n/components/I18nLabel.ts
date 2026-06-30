@@ -102,7 +102,7 @@ export class I18nLabel extends Component {
   }
   //#endregion
 
-  private _langToken: SubscriptionToken = null!;
+  private _langToken: SubscriptionToken | null = null;
 
   protected onLoad() {
     this._langToken = EventBus.on(I18nEventType.LANGUAGE_SWITCHED, () => this._onLanguageSwitched());
@@ -153,13 +153,13 @@ export class I18nLabel extends Component {
 
     switch (this.componentName) {
       case Label.name:
-        this.node.getComponent(Label)[this.componentProperty] = `${value}`;
+        (this.node.getComponent(Label) as any)[this.componentProperty] = `${value}`;
         break;
       case RichText.name:
-        this.node.getComponent(RichText)[this.componentProperty] = `${value}`;
+        (this.node.getComponent(RichText) as any)[this.componentProperty] = `${value}`;
         break;
       case EditBox.name:
-        this.node.getComponent(EditBox)[this.componentProperty] = `${value}`;
+        (this.node.getComponent(EditBox) as any)[this.componentProperty] = `${value}`;
         break;
     }
   }

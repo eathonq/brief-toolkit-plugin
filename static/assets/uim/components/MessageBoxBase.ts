@@ -101,7 +101,7 @@ export class MessageBoxBase extends ViewBase {
   }
 
   /** 数据关闭回调 */
-  private _callback: (result: MessageBoxResult) => void;
+  private _callback: ((result: MessageBoxResult) => void) | null = null;
   private _resetData(data: MessageBoxData) {
     // 同名消息框重复显示：取消旧的 Promise，更新为新数据（与 Tooltip 行为一致）
     if (this._callback) {
@@ -110,14 +110,14 @@ export class MessageBoxBase extends ViewBase {
       oldCallback(MessageBoxResult.None);
     }
     // 设置新回调
-    this._callback = data.resolve;
+    this._callback = data.resolve ?? null;
 
     // 默认数据恢复
     if (!data) data = {
-      content: undefined,
-      title: undefined,
-      buttons: undefined,
-      resolve: undefined
+      content: '',
+      title: '',
+      buttons: undefined!,
+      resolve: undefined!
     };
     if (data.title === undefined) data.title = "Title";
     if (data.content === undefined) data.content = "content.";

@@ -66,7 +66,7 @@ export class ItemsSource extends DataContext {
   @property({
     tooltip: '删除列表项时是否清空选中绑定',
     visible() {
-      return this._isSelected;
+      return (this as any)._isSelected;
     }
   })
   private clearSelectedOnDelete = true;
@@ -80,7 +80,7 @@ export class ItemsSource extends DataContext {
     type: Enum({}),
     tooltip: '绑定选中项',
     visible() {
-      return this._isSelected;
+      return (this as any)._isSelected;
     }
   })
   get bindingSelected() {
@@ -100,7 +100,7 @@ export class ItemsSource extends DataContext {
     if (!this.parent) return;
 
     // 获取绑定属性
-    const newEnums = [];
+    const newEnums: { name: string; value: number; }[] = [];
     const dataList = decoratorData.getPropertyList(this.parent.bindingType);
     if (!dataList) {
       this._bindingSelectedEnums = [];
@@ -170,7 +170,7 @@ export class ItemsSource extends DataContext {
   }
 
   /** 观察函数 */
-  private _itemsWatchHandle: WatchHandle = null!;
+  private _itemsWatchHandle: WatchHandle | null = null;
   protected onUpdateDataInternal() {
     if (!Array.isArray(this._data)) {
       this._initItems([]);
@@ -207,7 +207,7 @@ export class ItemsSource extends DataContext {
     this._itemsWatchHandle = watch(() => dataList.length, arrayCb as any, { immediate: true });
   }
 
-  private _content: Node = null!;
+  private _content: Node | null = null;
   private _initTemplate() {
     if (EDITOR) return;
 
@@ -300,7 +300,7 @@ export class ItemsSource extends DataContext {
 
   private _getItemIndex(node: Node) {
     if (!this._content) return -1;
-    let template = node;
+    let template: Node | null = node;
     while (template) {
       if (template.parent === this._content) {
         return template.getSiblingIndex();

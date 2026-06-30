@@ -155,7 +155,7 @@ export class GuideInteractionHandler {
     for (const element of this._elementRegistry) {
       const comp = node.getComponent(element.component);
       if (comp && prop in comp) {
-        return this._compareValue(comp[prop], operator, params);
+        return this._compareValue((comp as any)[prop], operator, params);
       }
     }
     return true; // 未找到属性，放行

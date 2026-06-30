@@ -64,15 +64,15 @@ export class GuideFocus implements IGuideFocus {
   private _maskGfx: Graphics = null!;
 
   /** 当前高亮目标 */
-  private _target: Node = null!;
+  private _target: Node | null = null;
   get hasFocus(): boolean { return this._target !== null; }
   get currentTarget(): Node | null { return this._target; }
 
   /** 当前镂空矩形（为 null 表示从未绘制过） */
-  private _currentRect: CutoutRect = null!;
+  private _currentRect: CutoutRect | null = null;
 
   /** 活跃的 tween */
-  private _activeTween: Tween<any> = null!;
+  private _activeTween: Tween<any> | null = null;
 
   /** 当前样式 */
   private _style: FocusStyle;

@@ -43,7 +43,7 @@ export namespace _decorator {
    */
   export function vm(name: string, global?: boolean): ClassDecorator {
     return (target: Function) => {
-      decoratorData.addViewModel(target, name, global);
+      decoratorData.addViewModel(target, name, global ?? false);
     };
   }
   //#endregion

@@ -18,7 +18,7 @@ export class DefaultSkinManager implements ISkinManager {
   restoreState(_state: SkinThemeState): void {}
   getState(): SkinThemeState { return { activeThemeKey: '', themes: [] }; }
   getAllThemes(): ThemeDef[] { return []; }
-  getThemeItems(_themeKey: string): SkinItem[] { return []; }
+  getThemeItems(_themeKey: string): SkinItem[] | undefined { return []; }
   switchTheme(_themeKey: string): void {}
   setActiveItem(_key: string): boolean { return false; }
   setItemEnable(_key: string, _enable: boolean): boolean { return false; }

@@ -38,14 +38,14 @@ import { GuideInteractionHandler } from './GuideInteractionHandler';
 export class GuideStepAction {
   private _rootNode: Node = null!;
   private _guideFocus: IGuideFocus = null!;
-  private _dialog: IGuideDialog = null!;
-  private _pointer: IGuidePointer = null!;
+  private _dialog: IGuideDialog | null = null;
+  private _pointer: IGuidePointer | null = null;
 
   /** 交互处理器（条件校验 + trigger 解析 + do* 方法） */
   private _handler: GuideInteractionHandler;
 
   /** 当前步骤的清理函数链（用于外部 cancel） */
-  private _currentCleanup: (() => void) = null!;
+  private _currentCleanup: (() => void) | null = null;
 
   constructor(
     rootNode: Node,

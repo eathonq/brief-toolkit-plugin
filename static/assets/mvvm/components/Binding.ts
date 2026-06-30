@@ -65,7 +65,7 @@ export class Binding extends CCElement {
 
   /** 数据上下文路径 */
   @property(DataContext)
-  private _parent: DataContext = null!;
+  private _parent: DataContext | null = null;
   @property({
     type: DataContext,
     displayName: 'DataContext',
@@ -250,11 +250,11 @@ export class Binding extends CCElement {
     const newEnums: { name: string, value: number, type: string }[] = [];
     const isFunc = this._elementKinds.indexOf(DataKind.Function) !== -1;
     if (isFunc) {
-      const dataList = decoratorData.getFunctionList(this._parent.bindingType);
+      const dataList = decoratorData.getFunctionList(this._parent!.bindingType);
       if (dataList) {
         let count = 0;
         dataList.forEach((item) => {
-          newEnums.push({ name: item.name, value: count++, type: item.type });
+          newEnums.push({ name: item.name, value: count++, type: item.type ?? '' });
         });
       }
 
@@ -264,7 +264,7 @@ export class Binding extends CCElement {
       }
     }
     else {
-      const dataList = decoratorData.getPropertyList(this._parent.bindingType);
+      const dataList = decoratorData.getPropertyList(this._parent!.bindingType);
       if (dataList) {
         let count = 0;
         dataList.forEach((item) => {
@@ -413,7 +413,7 @@ export class Binding extends CCElement {
   }
 
   private _isObservable = false;
-  private _watchHandle: WatchHandle = null!;
+  private _watchHandle: WatchHandle | null = null;
   private _onUpdateData() {
     // 上下文数据异常，则不继续执行
     if (!this._parent) return;

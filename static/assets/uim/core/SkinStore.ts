@@ -168,7 +168,7 @@ export class SkinStore {
         if (!this._keyMap.has(item.key)) {
           this._keyMap.set(item.key, new Map());
         }
-        this._keyMap.get(item.key).set(themeKey, item);
+        this._keyMap.get(item.key)?.set(themeKey, item);
       });
     });
   }

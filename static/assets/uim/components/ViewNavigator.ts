@@ -34,14 +34,14 @@ class ViewItem {
   }
 
   /** 视图基础数据 */
-  private _viewBase: ViewBase = null!;
+  private _viewBase: ViewBase | null = null;
   /** 视图基础数据 */
   get viewBase() {
     return this._viewBase;
   }
   /** 视图名称 */
   get viewName() {
-    return this._viewBase.viewName;
+    return this._viewBase!.viewName;
   }
 
   /**
@@ -69,8 +69,8 @@ class ViewItem {
     if (this._state == ViewState.Show) return;
     this._state = ViewState.Show;
 
-    this._viewBase.node.active = true;
-    this._viewBase.node.emit(ViewEvent, ViewState.Show, data);
+    this._viewBase!.node.active = true;
+    this._viewBase!.node.emit(ViewEvent, ViewState.Show, data);
   }
 
   /**
@@ -81,8 +81,8 @@ class ViewItem {
     if (this._state != ViewState.Show) return;
     this._state = ViewState.Hide;
 
-    this._viewBase.node.emit(ViewEvent, ViewState.Hide, data);
-    this._viewBase.node.active = false;
+    this._viewBase!.node.emit(ViewEvent, ViewState.Hide, data);
+    this._viewBase!.node.active = false;
   }
 
   /**
@@ -93,12 +93,14 @@ class ViewItem {
     if (this._state == ViewState.Close) return;
     this._state = ViewState.Close;
 
-    this._viewBase.node.emit(ViewEvent, ViewState.Close, data);
-    this._viewBase.node.active = false;
-    if (!this._viewBase.isCache) {
-      this._viewBase.node.destroy();
+    if (this._viewBase) {
+      this._viewBase.node.emit(ViewEvent, ViewState.Close, data);
+      this._viewBase.node.active = false;
+      if (!this._viewBase.isCache) {
+        this._viewBase.node.destroy();
+      }
+      this._viewBase = null;
     }
-    this._viewBase = null;
   }
 
   /**
@@ -107,7 +109,7 @@ class ViewItem {
    */
   data(data?: any) {
     if (this._state != ViewState.Show) return;
-    this._viewBase.node.emit(ViewEvent, ViewState.Data, data);
+    this._viewBase!.node.emit(ViewEvent, ViewState.Data, data);
   }
 }
 
@@ -116,10 +118,10 @@ class ViewStack {
   private _list: ViewItem[] = [];
 
   getViewItem(name: string): ViewItem {
-    return this._list.find(v => v.viewName === name);
+    return this._list.find(v => v.viewName === name)!;
   }
 
-  getTopViewItem(): ViewItem {
+  getTopViewItem(): ViewItem | null {
     if (this._list.length == 0) return null;
     return this._list[this._list.length - 1];
   }
@@ -160,7 +162,7 @@ class ViewStack {
     // 关闭当前最后一个视图
     if (this._list.length > 0) {
       const current = this._list.pop();
-      current.close();
+      current?.close();
     }
 
     //添加到当前最后一个视图，并显示
@@ -179,7 +181,7 @@ class ViewStack {
     // 关闭当前所有所有视图
     while (this._list.length > 0) {
       const current = this._list.pop();
-      current.close();
+      current?.close();
     }
 
     //添加到当前最后一个视图，并显示
@@ -196,7 +198,7 @@ class ViewStack {
     // 关闭当前最后一个视图
     if (this._list.length > 0) {
       const current = this._list.pop();
-      current.close(isRemove ? data : null);
+      current?.close(isRemove ? data : null);
     }
 
     // 显示当前最后一个视图
@@ -222,7 +224,7 @@ class ViewStack {
       // 关闭前面所有的视图
       while (this._list.length > index + 1) {
         const closeView = this._list.pop();
-        closeView.close();
+        closeView?.close();
       }
 
       // 显示当前最后一个视图
@@ -273,7 +275,7 @@ class ViewStack {
 class MessageBoxQueue {
   private _list: ViewItem[] = [];
 
-  getViewItem(name: string): ViewItem {
+  getViewItem(name: string): ViewItem | undefined {
     return this._list.find(v => v.viewName === name);
   }
 
@@ -306,7 +308,7 @@ class MessageBoxQueue {
 class TooltipQueue {
   private _list: ViewItem[] = [];
 
-  getViewItem(name: string): ViewItem {
+  getViewItem(name: string): ViewItem | undefined {
     return this._list.find(v => v.viewName === name);
   }
 
@@ -590,16 +592,18 @@ export class ViewNavigator extends Component implements IViewManager {
   }
   //#endregion
 
-  private _createViewItem(name: string): ViewItem {
+  private _createViewItem(name: string): ViewItem | null {
     if (!name) return null;
 
     let viewTemplate = this._viewTemplateMap.get(name);
     if (!viewTemplate) return null;
 
-    let viewItem: ViewItem = null;
+    let viewItem: ViewItem | null = null;
     if (viewTemplate.node instanceof Prefab) {
       let newViewNode = instantiate(viewTemplate.node);
       let newViewBase = newViewNode.getComponent(ViewBase);
+      if(!newViewBase) return null;
+
       this.viewContent.addChild(newViewNode);
 
       // 如果是缓存模式则重置模板为节点模板，下次直接使用节点模板
@@ -614,6 +618,7 @@ export class ViewNavigator extends Component implements IViewManager {
     }
     else {
       const viewBase = viewTemplate.node.getComponent(ViewBase);
+      if(!viewBase) return null;
       viewItem = new ViewItem(viewBase, this.close.bind(this), this.backView.bind(this));
     }
 
@@ -658,7 +663,7 @@ export class ViewNavigator extends Component implements IViewManager {
    * @param name 视图名称
    * @returns 视图类型
    */
-  getViewType<T extends string = string>(name: T): ViewType {
+  getViewType<T extends string = string>(name: T): ViewType | null {
     let viewTemplate = this._viewTemplateMap.get(name);
     if (viewTemplate) {
       return viewTemplate.viewType;
@@ -714,7 +719,7 @@ export class ViewNavigator extends Component implements IViewManager {
   registerView(...args: any[]): boolean {
     const [nameOrNode, node, type] = args;
     if (nameOrNode instanceof Prefab) {
-      let viewBase: ViewBase = nameOrNode.data.getComponent(ViewBase);
+      let viewBase = nameOrNode.data.getComponent(ViewBase);
       if (viewBase) {
         this._viewTemplateMap.set(viewBase.viewName, { viewType: viewBase.viewType, node: nameOrNode });
         return true;
@@ -724,7 +729,7 @@ export class ViewNavigator extends Component implements IViewManager {
       }
     }
     else if (nameOrNode instanceof Node) {
-      let viewBase: ViewBase = nameOrNode.getComponent(ViewBase);
+      let viewBase = nameOrNode.getComponent(ViewBase);
       if (viewBase) {
         viewBase.node.active = false;
         this._viewTemplateMap.set(viewBase.viewName, { viewType: viewBase.viewType, node: nameOrNode });
@@ -828,7 +833,7 @@ export class ViewNavigator extends Component implements IViewManager {
         return viewItem.viewName;
       }
     }
-    return null;
+    return "";
   }
 
   /**
@@ -943,7 +948,7 @@ export class ViewNavigator extends Component implements IViewManager {
    */
   showMessageBox<T extends string = string>(name: T, data: any): boolean;
   showMessageBox(...args: any[]): boolean {
-    let name: string;
+    let name: string | undefined = undefined;
     let data: any;
     if (args.length == 1) {
       data = args[0];
@@ -960,7 +965,7 @@ export class ViewNavigator extends Component implements IViewManager {
     }
 
     // 重复消息框，更新数据（已由 MessageBoxBase 内部处理）
-    let viewItem = this._messageBoxArray.getViewItem(name);
+    let viewItem = this._messageBoxArray.getViewItem(name) as ViewItem | null;
     if (viewItem) {
       viewItem.data(data);
       return true;
@@ -1006,7 +1011,7 @@ export class ViewNavigator extends Component implements IViewManager {
    */
   showTooltip<T extends string = string>(name: T, data: any): boolean;
   showTooltip(...args: any[]): boolean {
-    let name: string;
+    let name: string | undefined = undefined;
     let data: any;
     if (args.length == 1) {
       data = args[0];
@@ -1023,7 +1028,7 @@ export class ViewNavigator extends Component implements IViewManager {
     }
 
     // 重复提示框，更新数据
-    let viewItem = this._tooltipArray.getViewItem(name);
+    let viewItem = this._tooltipArray.getViewItem(name) as ViewItem | null;
     if (viewItem) {
       viewItem.data(data);
       return true;

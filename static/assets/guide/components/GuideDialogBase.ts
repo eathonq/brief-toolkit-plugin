@@ -45,7 +45,7 @@ export class GuideDialogBase extends Component implements IGuideDialog {
   protected _totalSteps: number = 0;
 
   /** 延迟定位回调引用（用于 unschedule 取消） */
-  private _deferredPosition: (() => void) = null!;
+  private _deferredPosition: (() => void) | null = null;
 
   /**
    * 步骤间过渡动画时长（秒），默认 0.3。

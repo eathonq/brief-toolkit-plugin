@@ -78,13 +78,13 @@ export class TooltipBase extends ViewBase {
   }
 
   /** 数据关闭回调 */
-  private _callback: () => void;
+  private _callback: (() => void) | null = null;
   private _resetData(data: TooltipData) {
     // 默认数据恢复
     if (!data) data = {
-      content: undefined,
-      isClose: undefined,
-      closeCallback: undefined,
+      content: '',
+      isClose: undefined!,
+      closeCallback: undefined!,
     };
     if (data.content === undefined) data.content = "content.";
     if (data.isClose === undefined) data.isClose = false;
@@ -103,7 +103,7 @@ export class TooltipBase extends ViewBase {
     this._callback = data.closeCallback;
 
     // 设置超时回调
-    if (data.timeout > 0) {
+    if ((data.timeout ?? 0) > 0) {
       data.timeoutCallback = () => {
         this.doClose?.(this.viewName);
       };

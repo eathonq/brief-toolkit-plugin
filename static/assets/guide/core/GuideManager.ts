@@ -47,7 +47,7 @@ enum GuideState {
  */
 export class GuideManager implements IGuideManager {
   //#region 单例
-  private static _instance: GuideManager = null!;
+  private static _instance: GuideManager | null = null;
   static get instance(): GuideManager {
     if (!GuideManager._instance) {
       GuideManager._instance = new GuideManager();
@@ -80,7 +80,7 @@ export class GuideManager implements IGuideManager {
    */
   private _pendingJump: number = -1;
   /** startTask 返回的 Promise resolve */
-  private _resolveTask: ((result: GuideResult) => void) = null!;
+  private _resolveTask: ((result: GuideResult) => void) | null = null;
 
   //#region IGuideManager 实现
 

@@ -62,7 +62,7 @@ export class Skins {
     return Skins.current.getAllThemes();
   }
 
-  static getThemeItems(themeKey: string): SkinItem[] {
+  static getThemeItems(themeKey: string): SkinItem[] | undefined {
     return Skins.current.getThemeItems(themeKey);
   }
 
